@@ -297,6 +297,79 @@
                     "pytest\\.raises"
                 ]
             }
+        },
+        "kr-private-education": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "대한민국 사교육(학원/과외) 도메인 지식. 학원 운영, 수강 관리, 학생/학부모 관리, 출결, 성적, 상담, 결제/환불 등 사교육 비즈니스 전반의 개념, 규칙, 패턴을 제공합니다.",
+            "promptTriggers": {
+                "keywords": [
+                    "학원",
+                    "교습소",
+                    "과외",
+                    "수강",
+                    "수강료",
+                    "원비",
+                    "학생",
+                    "수강생",
+                    "강사",
+                    "원장",
+                    "학부모",
+                    "출결",
+                    "출석",
+                    "결석",
+                    "환불",
+                    "상담",
+                    "레벨테스트",
+                    "반편성",
+                    "정규반",
+                    "특강",
+                    "캠프",
+                    "내신",
+                    "수능",
+                    "입시",
+                    "성적",
+                    "academy",
+                    "student",
+                    "enrollment",
+                    "attendance",
+                    "tuition",
+                    "refund"
+                ],
+                "intentPatterns": [
+                    "(학원|교습소|과외).*?(관리|시스템|개발)",
+                    "(수강|등록|환불).*?(처리|로직|기능)",
+                    "(학생|수강생|학부모).*?(관리|조회|등록)",
+                    "(출결|출석|결석).*?(체크|관리|처리)",
+                    "(상담|레벨테스트|반편성).*?(시스템|기능)",
+                    "(수강료|원비|결제).*?(계산|처리|환불)",
+                    "(create|implement|build).*?(academy|student|enrollment|attendance)",
+                    "(학원법|환불규정|심야제한).*?"
+                ]
+            },
+            "fileTriggers": {
+                "pathPatterns": [
+                    "**/academy/**/*.py",
+                    "**/student/**/*.py",
+                    "**/enrollment/**/*.py",
+                    "**/attendance/**/*.py",
+                    "**/consultation/**/*.py",
+                    "**/tuition/**/*.py",
+                    "**/education/**/*.py"
+                ],
+                "contentPatterns": [
+                    "class.*Academy",
+                    "class.*Student",
+                    "class.*Enrollment",
+                    "class.*Attendance",
+                    "class.*Consultation",
+                    "class.*Tuition",
+                    "SchoolType",
+                    "AttendanceStatus",
+                    "EnrollmentStatus"
+                ]
+            }
         }
     },
     "notes": {
