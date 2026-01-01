@@ -133,12 +133,4 @@ SMS, 알림톡, 학부모앱
 
 ---
 
-## Related Skills
-
-- **fastapi-backend-guidelines**: 백엔드 API 구현 시 참조
-- **nextjs-frontend-guidelines**: 프론트엔드 구현 시 참조
-- **error-tracking**: 에러 추적 설정 시 참조
-
----
-
 **Skill Status**: Active - 대한민국 사교육 도메인 전문 지식

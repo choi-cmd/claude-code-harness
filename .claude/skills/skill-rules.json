@@ -370,7 +370,143 @@
                     "EnrollmentStatus"
                 ]
             }
+        },
+        "english-syntax-analyzer": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "수능 영어 구문분석 도구. SVOC 5형식 체계 기반 구문분석, 성분 분석표, 문법 포인트 해설을 마크다운 형식으로 출력합니다. 교재 집필, 해설 작성, 어법 학습에 활용.",
+            "promptTriggers": {
+                "keywords": [
+                    "구문분석",
+                    "구문 분석",
+                    "syntax",
+                    "어법",
+                    "문법",
+                    "grammar",
+                    "SVOC",
+                    "5형식",
+                    "수능 영어",
+                    "문장 분석",
+                    "문장 구조",
+                    "성분 분석",
+                    "sentence analysis",
+                    "주어",
+                    "동사",
+                    "목적어",
+                    "보어",
+                    "관계대명사",
+                    "관계부사",
+                    "분사구문",
+                    "to부정사",
+                    "동명사",
+                    "수일치",
+                    "시제",
+                    "태",
+                    "능동",
+                    "수동",
+                    "병렬",
+                    "도치",
+                    "강조구문",
+                    "가주어",
+                    "진주어"
+                ],
+                "intentPatterns": [
+                    "(구문|문장).*?(분석|해석|해설)",
+                    "(어법|문법).*?(분석|설명|해설|정리)",
+                    "(수능|내신|모의고사).*?(영어|어법|문법)",
+                    "(교재|해설|학습지).*?(집필|작성)",
+                    "SVOC.*?(분석|표시)",
+                    "(sentence|syntax).*?(analysis|diagram|structure)",
+                    "(영어|English).*?(문장|sentence).*?(구조|structure)"
+                ]
+            },
+            "fileTriggers": {
+                "pathPatterns": [
+                    "**/grammar/**/*.md",
+                    "**/syntax/**/*.md",
+                    "**/english/**/*.md",
+                    "**/textbook/**/*.md"
+                ],
+                "contentPatterns": [
+                    "구문분석",
+                    "SVOC",
+                    "주어.*동사",
+                    "S\\s*\\+\\s*V",
+                    "관계대명사",
+                    "분사구문"
+                ]
+            }
+        },
+        "cliwant-brand-guidelines": {
+            "type": "guardrail",
+            "enforcement": "block",
+            "priority": "critical",
+            "description": "Official brand guidelines for Cliwant. Use when creating presentations, documents, marketing materials, or any visual/written content featuring Cliwant branding.",
+            "promptTriggers": {
+                "keywords": [
+                    "cliwant",
+                    "CLIWANT",
+                    "클라이원트",
+                    "presentation",
+                    "ppt",
+                    "PPT",
+                    "pptx",
+                    "PPTX",
+                    "pitching deck",
+                    "pitch deck",
+                    "IR",
+                    "investor relations",
+                    "브랜드",
+                    "brand",
+                    "branding",
+                    "logo",
+                    "로고",
+                    "marketing material",
+                    "마케팅 자료",
+                    "발표 자료",
+                    "프레젠테이션",
+                    "slide",
+                    "slides",
+                    "슬라이드"
+                ],
+                "intentPatterns": [
+                    "(create|make|build|update|modify|edit).*?(presentation|ppt|pptx|slide|deck)",
+                    "(create|make|build|update|modify|edit).*?(cliwant|클라이원트)",
+                    "(cliwant|클라이원트).*?(presentation|ppt|pptx|slide|deck|자료|발표)",
+                    "(presentation|ppt|pptx|slide|deck).*?(cliwant|클라이원트)",
+                    "(pitching|pitch|IR|investor).*?(deck|presentation|자료)",
+                    "(brand|브랜드|logo|로고).*?(cliwant|클라이원트)",
+                    "(cliwant|클라이원트).*?(brand|브랜드|logo|로고)",
+                    "발표.*?자료.*?(만들|작성|제작)",
+                    "(만들|작성|제작).*?발표.*?자료"
+                ]
+            },
+            "fileTriggers": {
+                "pathPatterns": [
+                    "**/*.pptx",
+                    "**/presentation/**",
+                    "**/slides/**",
+                    "**/marketing/**"
+                ],
+                "contentPatterns": [
+                    "cliwant",
+                    "CLIWANT",
+                    "클라이원트",
+                    "#686FE8",
+                    "#001376"
+                ]
+            },
+            "blockMessage": "⚠️ BLOCKED - Cliwant Brand Guidelines Required\n\n📋 REQUIRED ACTION:\n1. Use Skill tool: 'cliwant-brand-guidelines'\n2. Review logo usage rules (brand_logo.png as primary)\n3. Use correct colors: #686FE8 (Purple), #001376 (Dark Blue)\n4. Use Pretendard typography\n5. Write brand name correctly: CLIWANT (English) / 클라이원트 (Korean)\n6. Then proceed with content creation\n\nReason: Ensure consistent Cliwant brand identity\nFile: {file_path}\n\n💡 Assets located in: .claude/skills/cliwant-brand-guidelines/assets/",
+            "skipConditions": {
+                "sessionSkillUsed": true,
+                "fileMarkers": [
+                    "@skip-brand-validation"
+                ],
+                "envOverride": "SKIP_BRAND_GUIDELINES"
+            }
         }
+
     },
     "notes": {
         "enforcement_types": {
