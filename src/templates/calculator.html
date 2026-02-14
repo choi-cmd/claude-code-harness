@@ -42,7 +42,10 @@
                 </label>
                 <small class="auto-size-hint">이미지의 픽셀 크기를 mm 단위로 그대로 사용합니다</small>
             </div>
-            <p class="file-format-hint"><strong>PNG(추천)</strong>: 투명 배경 제외, 실제 이미지만 계산 / <strong>JPG</strong>: 배경 포함 전체 크기로 계산</p>
+            <div class="file-format-hint">
+                <p><strong>PNG(추천)</strong>: 투명 배경 제외, 실제 이미지만 계산</p>
+                <p><strong>JPG</strong>: 배경 포함 전체 크기로 계산</p>
+            </div>
             <div class="form-row">
                 <div class="form-group flex-2">
                     <label for="image">이미지 파일</label>
@@ -449,7 +452,7 @@ function goToOrderForm() {
     // 요약 바 업데이트
     var finalPrice = Math.floor(basePrice * 1.1);
     var summaryBar = document.getElementById('order-summary-bar');
-    summaryBar.innerHTML = '<span>' + w + 'mm × ' + h + 'mm</span><span>수량: ' + qty + '개</span><span>결제 금액: ' + finalPrice.toLocaleString() + '원 (VAT포함)</span>';
+    summaryBar.innerHTML = '<span><em>크기</em><strong>' + w + 'mm × ' + h + 'mm</strong></span><span><em>수량</em><strong>' + qty + '개</strong></span><span><em>결제 금액</em><strong>' + finalPrice.toLocaleString() + '원 (VAT포함)</strong></span>';
 
     // 계산기 영역 숨기기, 주문 폼 보이기
     document.getElementById('calc-area').style.display = 'none';
@@ -675,19 +678,37 @@ function resetOrder() {
 .order-summary-bar span {
     display: flex;
     align-items: center;
+    gap: 8px;
     white-space: nowrap;
 }
 
-@media (max-width: 480px) {
+.order-summary-bar em {
+    font-style: normal;
+    color: #888;
+    font-weight: 500;
+    font-size: 13px;
+}
+
+.order-summary-bar strong {
+    color: #333;
+}
+
+@media (max-width: 600px) {
     .order-summary-bar {
         flex-direction: column;
-        gap: 6px;
-        padding: 12px 16px;
-        font-size: 13px;
+        gap: 8px;
+        padding: 14px 16px;
+        font-size: 14px;
+    }
+    .order-summary-bar span {
+        justify-content: space-between;
+        width: 100%;
     }
     .btn-back {
         font-size: 13px;
         padding: 8px 12px;
+        width: 100%;
+        justify-content: center;
     }
 }
 
@@ -776,15 +797,22 @@ function resetOrder() {
     color: white;
 }
 
-/* 파일 포맷 힌트 (한 줄) */
+/* 파일 포맷 힌트 */
 .file-format-hint {
     font-size: 13px;
     color: #666;
     background: #f9f9f9;
     border-left: 3px solid #F4B900;
-    padding: 8px 12px;
+    padding: 10px 12px;
     margin-bottom: 14px;
     border-radius: 0 6px 6px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.file-format-hint p {
+    margin: 0;
     line-height: 1.5;
 }
 
