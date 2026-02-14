@@ -1,6 +1,6 @@
 {
-  "name": "서블리원 주문 관리",
-  "short_name": "주문 관리",
+  "name": "서블리원 아크릴 주문관리",
+  "short_name": "아크릴 주문관리",
   "description": "서블리원 아크릴 주문제작 관리자",
   "start_url": "/admin/orders",
   "display": "standalone",
@@ -9,13 +9,13 @@
   "orientation": "any",
   "icons": [
     {
-      "src": "/static/images/icon-192.png",
+      "src": "/static/images/icon-admin-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/static/images/icon-512.png",
+      "src": "/static/images/icon-admin-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
