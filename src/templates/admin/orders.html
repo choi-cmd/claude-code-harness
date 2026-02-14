@@ -302,7 +302,8 @@ function downloadSelected() {
 .orders-list {
     background: white;
     border-radius: 12px;
-    overflow: hidden;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .admin-table {
@@ -464,6 +465,64 @@ function downloadSelected() {
     padding: 16px 20px;
     border-top: 1px solid #e0e0e0;
     text-align: right;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 600px) {
+    .admin-container {
+        padding: 10px;
+    }
+    .admin-header {
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px;
+        text-align: center;
+    }
+    .admin-header h1 {
+        font-size: 18px;
+    }
+    .admin-actions {
+        width: 100%;
+        justify-content: center;
+    }
+    .filter-tabs {
+        flex-wrap: wrap;
+    }
+    .filter-tab {
+        padding: 8px 14px;
+        font-size: 13px;
+        flex: 1;
+        text-align: center;
+    }
+    .bulk-actions {
+        justify-content: center;
+        text-align: center;
+    }
+    #selected-count {
+        width: 100%;
+        text-align: center;
+        margin-right: 0;
+    }
+    .admin-table {
+        min-width: 700px;
+    }
+    .admin-table th,
+    .admin-table td {
+        padding: 10px 8px;
+        font-size: 12px;
+    }
+    .orders-list {
+        border-radius: 8px;
+    }
+    .orders-list::after {
+        content: '← 좌우로 스크롤 →';
+        display: block;
+        text-align: center;
+        padding: 8px;
+        font-size: 11px;
+        color: #999;
+        background: #f8f9fa;
+    }
 }
 </style>
 {% endblock %}
