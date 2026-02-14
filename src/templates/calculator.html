@@ -660,7 +660,8 @@ function resetOrder() {
 /* 주문 요약 바 */
 .order-summary-bar {
     display: flex;
-    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 16px;
     padding: 14px 20px;
     background: #fffbf0;
     border: 2px solid #F4B900;
@@ -674,6 +675,20 @@ function resetOrder() {
 .order-summary-bar span {
     display: flex;
     align-items: center;
+    white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+    .order-summary-bar {
+        flex-direction: column;
+        gap: 6px;
+        padding: 12px 16px;
+        font-size: 13px;
+    }
+    .btn-back {
+        font-size: 13px;
+        padding: 8px 12px;
+    }
 }
 
 /* 헤더 하단 구분선 */
