@@ -5,9 +5,25 @@
     <div class="admin-header">
         <h1>📦 주문 관리</h1>
         <div class="admin-actions">
-            <a href="/" class="btn-secondary">고객 페이지로</a>
-            <a href="/admin/logout" class="btn-logout">로그아웃</a>
+            <a href="/" class="btn-action btn-secondary">고객 페이지로</a>
+            <a href="/admin/logout" class="btn-action btn-logout">로그아웃</a>
         </div>
+    </div>
+
+    <!-- 필터 탭 -->
+    <div class="filter-tabs">
+        <button class="filter-tab active" onclick="filterOrders('all')">전체 <span class="tab-count" id="count-all">0</span></button>
+        <button class="filter-tab" onclick="filterOrders('pending')">대기중 <span class="tab-count" id="count-pending">0</span></button>
+        <button class="filter-tab" onclick="filterOrders('completed')">완료 <span class="tab-count" id="count-completed">0</span></button>
+    </div>
+
+    <!-- 선택 액션 바 -->
+    <div class="bulk-actions" id="bulk-actions" style="display:none;">
+        <span id="selected-count">0개 선택</span>
+        <button onclick="bulkUpdateStatus('completed')" class="btn-action btn-complete">✅ 완료 처리</button>
+        <button onclick="bulkUpdateStatus('pending')" class="btn-action btn-revert">↩️ 대기 처리</button>
+        <button onclick="downloadSelected()" class="btn-action btn-download-csv">📥 선택 다운로드</button>
+        <a href="/admin/orders/download" class="btn-action btn-download-all">📥 전체 다운로드</a>
     </div>
 
     <div class="orders-list">
@@ -15,32 +31,37 @@
         <table class="admin-table">
             <thead>
                 <tr>
-                    <th>주문번호</th>
-                    <th>고객명</th>
-                    <th>연락처</th>
-                    <th>크기</th>
-                    <th>수량</th>
-                    <th>총액</th>
-                    <th>상태</th>
-                    <th>주문일시</th>
-                    <th>상세</th>
+                    <th class="col-check"><input type="checkbox" id="select-all" onchange="toggleSelectAll()"></th>
+                    <th class="col-no">No.</th>
+                    <th class="col-name">고객</th>
+                    <th class="col-phone">연락처</th>
+                    <th class="col-size">크기</th>
+                    <th class="col-qty">수량</th>
+                    <th class="col-price">금액</th>
+                    <th class="col-file">📎</th>
+                    <th class="col-status">상태</th>
+                    <th class="col-date">일시</th>
+                    <th class="col-action"></th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="orders-tbody">
                 {% for order in orders %}
-                <tr>
-                    <td><strong>{{ order.order_id }}</strong></td>
+                <tr data-order-id="{{ order.order_id }}" data-status="{{ order.status }}" class="order-row">
+                    <td><input type="checkbox" class="order-check" value="{{ order.order_id }}" onchange="updateBulkActions()"></td>
+                    <td><strong>{{ order.order_id[-4:] }}</strong></td>
                     <td>{{ order.customer_name }}</td>
                     <td>{{ order.customer_phone }}</td>
                     <td>{{ order.width }}×{{ order.height }}mm</td>
                     <td>{{ order.quantity }}개</td>
                     <td><strong>{{ "{:,}".format(order.total_price) }}원</strong></td>
+                    <td>{% if order.file_path %}<span class="file-link" onclick="showPreview('{{ order.file_path }}', '{{ order.order_id }}')">📎</span>{% else %}-{% endif %}</td>
+
                     <td>
                         <span class="status-badge status-{{ order.status }}">
-                            {{ order.status }}
+                            {% if order.status == 'pending' %}대기중{% elif order.status == 'completed' %}완료{% else %}{{ order.status }}{% endif %}
                         </span>
                     </td>
-                    <td>{{ order.created_at[:16] }}</td>
+                    <td>{{ order.created_at[5:16] }}</td>
                     <td>
                         <a href="/admin/orders/{{ order.order_id }}" class="btn-view">보기</a>
                     </td>
@@ -56,9 +77,126 @@
     </div>
 </div>
 
+<!-- 미리보기 모달 -->
+<div class="preview-modal" id="preview-modal" onclick="closePreview(event)">
+    <div class="preview-content">
+        <div class="preview-header">
+            <span id="preview-title">첨부파일</span>
+            <button onclick="document.getElementById('preview-modal').style.display='none'" class="preview-close">&times;</button>
+        </div>
+        <div class="preview-body" id="preview-body"></div>
+        <div class="preview-footer">
+            <a id="preview-download" href="#" download class="btn-action btn-download-csv">💾 다운로드</a>
+        </div>
+    </div>
+</div>
+
+<script>
+function showPreview(filePath, orderId) {
+    var ext = filePath.split('.').pop().toLowerCase();
+    var body = document.getElementById('preview-body');
+    document.getElementById('preview-title').textContent = orderId + ' 첨부파일';
+    document.getElementById('preview-download').href = '/admin/orders/' + orderId + '/file';
+
+    if (['png','jpg','jpeg','gif','bmp'].indexOf(ext) >= 0) {
+        body.innerHTML = '<img src="' + filePath + '" class="preview-img">';
+    } else {
+        body.innerHTML = '<div class="preview-file-info"><span class="preview-ext">.' + ext.toUpperCase() + '</span><p>미리보기를 지원하지 않는 파일입니다</p></div>';
+    }
+    document.getElementById('preview-modal').style.display = 'flex';
+}
+
+function closePreview(e) {
+    if (e.target === document.getElementById('preview-modal')) {
+        document.getElementById('preview-modal').style.display = 'none';
+    }
+}
+
+var currentFilter = 'all';
+
+function filterOrders(status) {
+    currentFilter = status;
+    var rows = document.querySelectorAll('.order-row');
+    rows.forEach(function(row) {
+        if (status === 'all' || row.dataset.status === status) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    // 탭 활성화
+    document.querySelectorAll('.filter-tab').forEach(function(tab) { tab.classList.remove('active'); });
+    event.target.closest('.filter-tab').classList.add('active');
+
+    // 전체 선택 해제
+    document.getElementById('select-all').checked = false;
+    document.querySelectorAll('.order-check').forEach(function(cb) { cb.checked = false; });
+    updateBulkActions();
+}
+
+function toggleSelectAll() {
+    var checked = document.getElementById('select-all').checked;
+    document.querySelectorAll('.order-row').forEach(function(row) {
+        if (row.style.display !== 'none') {
+            row.querySelector('.order-check').checked = checked;
+        }
+    });
+    updateBulkActions();
+}
+
+function getSelectedIds() {
+    var ids = [];
+    document.querySelectorAll('.order-check:checked').forEach(function(cb) {
+        ids.push(cb.value);
+    });
+    return ids;
+}
+
+function updateBulkActions() {
+    var ids = getSelectedIds();
+    var bar = document.getElementById('bulk-actions');
+    bar.style.display = ids.length > 0 ? 'flex' : 'none';
+    document.getElementById('selected-count').textContent = ids.length + '개 선택';
+}
+
+function bulkUpdateStatus(status) {
+    var ids = getSelectedIds();
+    if (ids.length === 0) return;
+
+    fetch('/admin/orders/bulk-status', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({order_ids: ids, status: status})
+    }).then(function(res) {
+        if (res.ok) location.reload();
+    });
+}
+
+function downloadSelected() {
+    var ids = getSelectedIds();
+    if (ids.length === 0) return;
+    window.location.href = '/admin/orders/download?ids=' + ids.join(',');
+}
+
+// 카운트 업데이트
+(function() {
+    var rows = document.querySelectorAll('.order-row');
+    var total = 0, pending = 0, completed = 0;
+    rows.forEach(function(row) {
+        total++;
+        if (row.dataset.status === 'pending') pending++;
+        else if (row.dataset.status === 'completed') completed++;
+    });
+    document.getElementById('count-all').textContent = total;
+    document.getElementById('count-pending').textContent = pending;
+    document.getElementById('count-completed').textContent = completed;
+})();
+</script>
+
 <style>
 .admin-container {
-    max-width: 1200px;
+    max-width: 100%;
     margin: 0 auto;
     padding: 20px;
 }
@@ -67,7 +205,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 32px;
+    margin-bottom: 16px;
     background: white;
     padding: 24px;
     border-radius: 12px;
@@ -83,24 +221,84 @@
     gap: 12px;
 }
 
-.btn-secondary, .btn-logout {
-    padding: 10px 20px;
+.btn-action {
+    padding: 8px 14px;
     border-radius: 6px;
     text-decoration: none;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 13px;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
 }
 
-.btn-secondary {
-    background: #f0f0f0;
+.btn-secondary { background: #f0f0f0; color: #333; }
+.btn-logout { background: #ff4444; color: white; }
+.btn-download-csv { background: #28a745; color: white; }
+.btn-download-all { background: #17a2b8; color: white; }
+.btn-complete { background: #28a745; color: white; }
+.btn-revert { background: #6c757d; color: white; }
+
+/* 필터 탭 */
+.filter-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.filter-tab {
+    padding: 10px 20px;
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filter-tab.active {
+    border-color: #F4B900;
+    background: #fffbf0;
     color: #333;
 }
 
-.btn-logout {
-    background: #ff4444;
-    color: white;
+.tab-count {
+    display: inline-block;
+    background: #e0e0e0;
+    color: #666;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    margin-left: 4px;
 }
 
+.filter-tab.active .tab-count {
+    background: #F4B900;
+    color: #1A1A1A;
+}
+
+/* 선택 액션 바 */
+.bulk-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 16px;
+    background: #333;
+    color: white;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+#selected-count {
+    margin-right: auto;
+}
+
+/* 테이블 */
 .orders-list {
     background: white;
     border-radius: 12px;
@@ -116,17 +314,38 @@
     background: #f8f9fa;
 }
 
-.admin-table th {
-    padding: 16px;
+.admin-table th,
+.admin-table td {
+    padding: 12px 12px;
     text-align: left;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.admin-table th {
     font-weight: 600;
     color: #5C5C5C;
     border-bottom: 2px solid #e0e0e0;
 }
 
 .admin-table td {
-    padding: 16px;
     border-bottom: 1px solid #f0f0f0;
+}
+
+/* 컬럼 정렬 */
+.admin-table .col-check { text-align: center; }
+.admin-table .col-file { text-align: center; }
+
+.order-check, #select-all {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #F4B900;
+}
+
+.order-row[data-status="completed"] {
+    opacity: 0.6;
+    background: #f9f9f9;
 }
 
 .status-badge {
@@ -147,7 +366,7 @@
 }
 
 .btn-view {
-    padding: 6px 16px;
+    padding: 6px 14px;
     background: #F4B900;
     color: #1A1A1A;
     text-decoration: none;
@@ -160,6 +379,91 @@
     padding: 60px;
     text-align: center;
     color: #999;
+}
+
+.file-link {
+    cursor: pointer;
+    font-size: 18px;
+    transition: transform 0.2s;
+    display: inline-block;
+}
+.file-link:hover { transform: scale(1.3); }
+
+/* 미리보기 모달 */
+.preview-modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.preview-content {
+    background: white;
+    border-radius: 12px;
+    max-width: 700px;
+    width: 90%;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e0e0e0;
+    font-weight: 700;
+    font-size: 16px;
+}
+
+.preview-close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: #999;
+    line-height: 1;
+}
+.preview-close:hover { color: #333; }
+
+.preview-body {
+    padding: 20px;
+    text-align: center;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.preview-img {
+    max-width: 100%;
+    max-height: 60vh;
+    border-radius: 8px;
+}
+
+.preview-file-info {
+    padding: 40px;
+    color: #666;
+}
+
+.preview-ext {
+    display: inline-block;
+    background: #f0f0f0;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 24px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 12px;
+}
+
+.preview-footer {
+    padding: 16px 20px;
+    border-top: 1px solid #e0e0e0;
+    text-align: right;
 }
 </style>
 {% endblock %}

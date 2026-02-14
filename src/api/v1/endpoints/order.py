@@ -45,6 +45,7 @@ async def submit_order(
     height: float = Form(...),
     quantity: int = Form(...),
     notes: Optional[str] = Form(None),
+    ratio_file_path: Optional[str] = Form(None),
     file: Optional[UploadFile] = File(None),
     service: OrderServiceDep = None,
 ) -> HTMLResponse:
@@ -80,6 +81,10 @@ async def submit_order(
                 f.write(content)
 
             file_path = f"/static/uploads/{safe_filename}"
+
+        # 비율 계산에서 업로드한 파일 경로 사용 (새 파일이 없을 때)
+        if not file_path and ratio_file_path and ratio_file_path.strip():
+            file_path = ratio_file_path.strip()
 
         # 주문 생성
         order_data = OrderCreate(

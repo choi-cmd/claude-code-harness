@@ -16,12 +16,8 @@
                 <td><strong>{{ result.width }}mm × {{ result.height }}mm</strong></td>
             </tr>
             <tr>
-                <td>1판 최소 수량</td>
+                <td>최소 수량</td>
                 <td><strong class="highlight">{{ result.min_quantity }}개</strong></td>
-            </tr>
-            <tr>
-                <td>배치 정보</td>
-                <td>{{ result.layout_info }}</td>
             </tr>
             <tr>
                 <td>주문 수량</td>
@@ -69,4 +65,6 @@
         ✅ 최소 수량을 충족하여 정규 제작 가격이 적용되었습니다.
     </div>
     {% endif %}
+
+    <button type="button" class="btn-go-order" onclick="goToOrderForm()">주문 신청하기 →</button>
 </div>

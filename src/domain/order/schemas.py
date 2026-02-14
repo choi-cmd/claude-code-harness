@@ -10,7 +10,7 @@ class ImageRatioRequest(BaseModel):
 
     original_width: float = Field(..., gt=0, description="원본 가로 (px)")
     original_height: float = Field(..., gt=0, description="원본 세로 (px)")
-    target_size: float = Field(..., gt=0, description="목표 크기 (mm)")
+    target_size: Optional[float] = Field(None, gt=0, description="목표 크기 (mm)")
     target_dimension: str = Field(default="width", description="기준 방향 (width/height)")
 
 

@@ -12,7 +12,7 @@ from src.api.v1.endpoints.admin import router as admin_router
 
 # FastAPI 앱 생성
 app = FastAPI(
-    title="서블리원 아크릴 주문제작 신청시트",
+    title="서블리원 아크릴 주문제작 프로그램",
     description="아크릴 주문제작 단가 계산 및 주문 신청 시스템",
     version="2.0.0",
 )

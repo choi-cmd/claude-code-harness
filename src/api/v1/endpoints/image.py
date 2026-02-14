@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Optional
 
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse
@@ -23,8 +23,8 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 async def upload_image(
     request: Request,
     file: UploadFile = File(...),
-    target_size: float = Form(...),
-    target_dimension: str = Form("width"),
+    target_size: Optional[float] = Form(None),
+    target_dimension: str = Form("auto"),
 ) -> HTMLResponse:
     """
     이미지 업로드 및 비율 계산
@@ -77,15 +77,29 @@ async def upload_image(
                 original_width, original_height = img.size
                 is_transparent = False
 
-        # 비율 계산
-        service = OrderService()
-        ratio_request = ImageRatioRequest(
-            original_width=original_width,
-            original_height=original_height,
-            target_size=target_size,
-            target_dimension=target_dimension,
-        )
-        result = service.calculate_image_ratio(ratio_request)
+        # auto 모드: 이미지 픽셀 크기를 mm로 직접 사용
+        if target_dimension == "auto":
+            from src.domain.order.schemas import ImageRatioResponse
+
+            ratio = original_width / original_height
+            result = ImageRatioResponse(
+                original_width=original_width,
+                original_height=original_height,
+                target_width=round(original_width),
+                target_height=round(original_height),
+                ratio=round(ratio, 4),
+                target_dimension="auto",
+            )
+        else:
+            # 비율 계산
+            service = OrderService()
+            ratio_request = ImageRatioRequest(
+                original_width=original_width,
+                original_height=original_height,
+                target_size=target_size,
+                target_dimension=target_dimension,
+            )
+            result = service.calculate_image_ratio(ratio_request)
 
         # 템플릿 렌더링
         return templates.TemplateResponse(
@@ -95,6 +109,7 @@ async def upload_image(
                 "result": result,
                 "filename": file.filename,
                 "is_transparent": is_transparent,
+                "file_path": f"/static/uploads/temp_{file.filename}",
             },
         )
 

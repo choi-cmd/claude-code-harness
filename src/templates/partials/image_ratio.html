@@ -1,3 +1,35 @@
+{% set max_width = 406 %}
+{% set max_height = 609 %}
+{% set too_large = (result.target_width|int > max_width) or (result.target_height|int > max_height) %}
+
+{% if too_large %}
+<div class="ratio-result-card ratio-error">
+    <h3>❌ 제작 불가 크기</h3>
+
+    <div class="info-badge error">
+        <span class="badge-icon">🚫</span>
+        <span>이미지 크기가 제작 가능 범위를 초과합니다. 다른 파일을 첨부하거나 크기를 지정해주세요.</span>
+    </div>
+
+    <div class="ratio-info">
+        <div class="ratio-item">
+            <span class="label">{% if is_transparent %}실제 객체 크기:{% else %}원본 크기:{% endif %}</span>
+            <span class="value">{{ result.original_width|int }} × {{ result.original_height|int }} px</span>
+        </div>
+        <div class="ratio-item highlight-box error-box">
+            <span class="label">계산된 크기:</span>
+            <span class="value"><strong>{{ result.target_width|int }}mm × {{ result.target_height|int }}mm</strong></span>
+        </div>
+        <div class="ratio-item">
+            <span class="label">최대 제작 크기:</span>
+            <span class="value">{{ max_width }}mm × {{ max_height }}mm</span>
+        </div>
+    </div>
+
+    <p class="hint">기준 방향을 선택하고 원하는 크기를 직접 입력하거나, 더 작은 이미지를 첨부해주세요.</p>
+</div>
+
+{% else %}
 <div class="ratio-result-card">
     <h3>✅ 비율 계산 완료</h3>
 
@@ -23,8 +55,8 @@
             <span class="value">{{ result.ratio }}</span>
         </div>
         <div class="ratio-item highlight-box">
-            <span class="label">계산된 크기 ({% if result.target_dimension == 'height' %}세로{% else %}가로{% endif %} 기준):</span>
-            <span class="value"><strong>{{ result.target_width }}mm × {{ result.target_height }}mm</strong></span>
+            <span class="label">{% if result.target_dimension == 'auto' %}이미지 기준 크기:{% else %}계산된 크기 ({% if result.target_dimension == 'height' %}세로{% else %}가로{% endif %} 기준):{% endif %}</span>
+            <span class="value"><strong>{{ result.target_width|int }}mm × {{ result.target_height|int }}mm</strong></span>
         </div>
     </div>
 
@@ -34,10 +66,31 @@
     <script>
         document.getElementById('width').value = {{ result.target_width }};
         document.getElementById('height').value = {{ result.target_height }};
+        // 비율 계산으로 적용된 크기는 수정 불가
+        document.getElementById('width').readOnly = true;
+        document.getElementById('height').readOnly = true;
+        document.getElementById('width').classList.add('readonly-field');
+        document.getElementById('height').classList.add('readonly-field');
+        window.ratioLocked = true;
+        // 비율 계산에서 업로드한 파일 경로 저장
+        window.ratioFilePath = '{{ file_path }}';
+        // 주문 폼 hidden input에 직접 세팅
+        var ratioFileInput = document.getElementById('order_ratio_file');
+        if (ratioFileInput) ratioFileInput.value = '{{ file_path }}';
+        // 자동 첨부 표시
+        var autoAttached = document.getElementById('auto-attached-file');
+        var autoName = document.getElementById('auto-attached-name');
+        if (autoAttached && autoName) {
+            autoName.textContent = '{{ filename }}';
+            autoAttached.style.display = 'flex';
+            document.getElementById('design_file').style.display = 'none';
+            document.getElementById('design_file_hint').style.display = 'none';
+        }
         // 계산 트리거
         document.querySelector('.calculator-form').dispatchEvent(new Event('submit'));
     </script>
 </div>
+{% endif %}
 
 <style>
 .ratio-result-card {
@@ -46,6 +99,11 @@
     border-radius: 12px;
     padding: 20px;
     margin-top: 16px;
+}
+
+.ratio-result-card.ratio-error {
+    background: #fff5f5;
+    border-color: #ff4444;
 }
 
 .ratio-result-card h3 {
@@ -86,6 +144,14 @@
     font-size: 18px;
 }
 
+.error-box {
+    background: #ffe0e0;
+}
+
+.error-box .value strong {
+    color: #ff4444;
+}
+
 .hint {
     margin-top: 12px;
     font-size: 13px;
@@ -110,6 +176,12 @@
     background: #fff3cd;
     border-color: #ffeaa7;
     color: #856404;
+}
+
+.info-badge.error {
+    background: #f8d7da;
+    border-color: #f5c6cb;
+    color: #721c24;
 }
 
 .badge-icon {

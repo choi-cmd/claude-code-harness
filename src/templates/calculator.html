@@ -5,20 +5,20 @@
     <div class="header-section">
         <img src="/static/images/logo.png" alt="서블리원 로고" class="logo">
         <div class="title-group">
-            <h1>서블리원 아크릴 주문제작 신청시트</h1>
+            <h1>서블리원 아크릴 주문제작 프로그램</h1>
         </div>
     </div>
+    <hr class="header-divider">
 
+    <div id="calc-area">
     <!-- 이미지 비율 계산기 -->
     <div class="section-divider section-with-reset">
         <div>
             <h2>📐 이미지 비율 계산 (선택)</h2>
-            <p class="section-desc">이미지를 업로드하면 원하는 가로 크기에 맞춰 세로를 자동 계산합니다</p>
+            <p class="section-desc">이미지를 업로드하면 크기를 자동 계산하거나, 원하는 크기에 맞춰 비율을 계산합니다</p>
         </div>
         <button type="button" onclick="resetRatio()" class="btn-section-reset">초기화</button>
     </div>
-
-    <p class="file-format-hint"><strong>PNG(추천)</strong>: 투명 배경 제외, 실제 이미지만 계산 / <strong>JPG</strong>: 배경 포함 전체 크기로 계산</p>
 
     <div class="skip-ratio-toggle">
         <label class="checkbox-label">
@@ -35,6 +35,14 @@
             hx-encoding="multipart/form-data"
             class="image-form"
         >
+            <div class="auto-size-toggle-wrap">
+                <label class="auto-size-toggle">
+                    <input type="checkbox" id="auto-size" onchange="toggleAutoSize()">
+                    <span>첨부한 이미지 크기 그대로 자동 계산</span>
+                </label>
+                <small class="auto-size-hint">이미지의 픽셀 크기를 mm 단위로 그대로 사용합니다</small>
+            </div>
+            <p class="file-format-hint"><strong>PNG(추천)</strong>: 투명 배경 제외, 실제 이미지만 계산 / <strong>JPG</strong>: 배경 포함 전체 크기로 계산</p>
             <div class="form-row">
                 <div class="form-group flex-2">
                     <label for="image">이미지 파일</label>
@@ -48,18 +56,18 @@
                 </div>
                 <div class="form-group flex-1">
                     <label for="target_dimension">기준 방향</label>
-                    <select id="target_dimension" name="target_dimension" class="select-input">
+                    <select id="target_dimension" name="target_dimension" class="select-input" onchange="updateTargetLabel()">
                         <option value="width">가로 기준</option>
                         <option value="height">세로 기준</option>
                     </select>
                 </div>
-                <div class="form-group flex-1">
+                <div class="form-group flex-1" id="target_size_group">
                     <label for="target_size" id="target_size_label">원하는 가로 (mm)</label>
                     <input
                         type="number"
                         id="target_size"
                         name="target_size"
-                        step="0.1"
+                        step="1"
                         min="1"
                         placeholder="예: 100"
                     >
@@ -82,7 +90,7 @@
         hx-post="/api/calculate"
         hx-target="#result"
         hx-swap="innerHTML"
-        hx-trigger="submit, change delay:500ms from:input"
+        hx-trigger="submit"
         class="calculator-form"
     >
         <div class="form-row">
@@ -134,12 +142,18 @@
         <p class="placeholder">위 정보를 입력하시면 자동으로 계산됩니다.</p>
     </div>
 
+    </div><!-- /calc-area -->
+
     <!-- 주문 신청 폼 -->
     <div id="order-section" class="order-section" style="display: none;">
-        <div class="section-divider section-with-reset">
+        <button type="button" onclick="backToCalculator()" class="btn-back">← 견적 계산으로 돌아가기</button>
+
+        <div class="order-summary-bar" id="order-summary-bar"></div>
+
+        <div class="section-divider section-with-reset" style="border-top:none; padding-top:0; margin-top:0;">
             <div>
                 <h2>📝 주문 신청</h2>
-                <p class="section-desc">계산 결과가 맞다면 아래 정보를 입력하여 주문을 신청하세요</p>
+                <p class="section-desc">아래 정보를 입력하여 주문을 신청하세요</p>
             </div>
             <button type="button" onclick="resetOrder()" class="btn-section-reset">초기화</button>
         </div>
@@ -153,6 +167,7 @@
             <input type="hidden" id="order_width" name="width">
             <input type="hidden" id="order_height" name="height">
             <input type="hidden" id="order_quantity" name="quantity">
+            <input type="hidden" id="order_ratio_file" name="ratio_file_path" value="">
 
             <div class="form-row">
                 <div class="form-group">
@@ -189,8 +204,14 @@
                 >
             </div>
 
+            <hr class="order-divider">
+
             <div class="form-group">
                 <label for="design_file" id="design_file_label">디자인 파일 (선택)</label>
+                <div id="auto-attached-file" class="auto-attached" style="display:none;">
+                    <span>📎 <strong id="auto-attached-name"></strong> (비율 계산에서 첨부됨)</span>
+                    <button type="button" onclick="removeAutoAttached()" class="btn-remove-file">✕ 제거</button>
+                </div>
                 <input
                     type="file"
                     id="design_file"
@@ -200,6 +221,8 @@
                 >
                 <small id="design_file_hint">AI, PSD, PNG, JPG, PDF 등 디자인 파일을 업로드하세요</small>
             </div>
+
+            <hr class="order-divider">
 
             <label class="option-checkbox">
                 <input type="checkbox" id="opt_template_file" name="template_file" value="1" onchange="updateOrderTotal()">
@@ -228,6 +251,8 @@
                 </div>
             </div>
 
+            <hr class="order-divider">
+
             <div class="form-group">
                 <label for="notes">요청사항 (선택)</label>
                 <textarea
@@ -250,29 +275,76 @@
 // 비율 계산 사용 여부 추적
 var ratioUsed = false;
 
-// 계산 결과가 나오면 주문 폼 표시
+// 계산 결과가 나오면 주문 데이터 준비 (주문폼은 아직 안 보여줌)
 document.body.addEventListener('htmx:afterSwap', function(event) {
     if (event.detail.target.id === 'result') {
-        var orderSection = document.getElementById('order-section');
-        if (orderSection) {
-            orderSection.style.display = 'block';
-            document.getElementById('order_width').value = document.getElementById('width').value;
-            document.getElementById('order_height').value = document.getElementById('height').value;
-            document.getElementById('order_quantity').value = document.getElementById('quantity').value;
-            updateDesignFileRequired();
-            updateOrderTotal();
-        }
+        // 주문 폼 데이터만 세팅 (표시는 버튼 클릭 시)
+        document.getElementById('order_width').value = document.getElementById('width').value;
+        document.getElementById('order_height').value = document.getElementById('height').value;
+        document.getElementById('order_quantity').value = document.getElementById('quantity').value;
+        updateDesignFileRequired();
+        updateOrderTotal();
     }
     if (event.detail.target.id === 'image-result') {
         ratioUsed = true;
+        // 비율 계산에서 업로드한 파일 경로를 주문 폼에 세팅
+        if (window.ratioFilePath) {
+            document.getElementById('order_ratio_file').value = window.ratioFilePath;
+            // 파일명 추출해서 자동 첨부 표시
+            var fileName = window.ratioFilePath.split('/').pop().replace('temp_', '');
+            document.getElementById('auto-attached-name').textContent = fileName;
+            document.getElementById('auto-attached-file').style.display = 'flex';
+            document.getElementById('design_file').style.display = 'none';
+            document.getElementById('design_file_hint').style.display = 'none';
+        }
     }
 });
 
-// 기준 방향 변경 시 라벨 업데이트
-document.getElementById('target_dimension').addEventListener('change', function() {
-    var label = document.getElementById('target_size_label');
-    label.textContent = this.value === 'width' ? '원하는 가로 (mm)' : '원하는 세로 (mm)';
+// 파일 선택 시 자동 모드면 바로 제출
+document.getElementById('image').addEventListener('change', function() {
+    autoSubmitIfFileReady();
 });
+
+// 기준 방향 라벨 업데이트
+function updateTargetLabel() {
+    var dim = document.getElementById('target_dimension').value;
+    document.getElementById('target_size_label').textContent = dim === 'width' ? '원하는 가로 (mm)' : '원하는 세로 (mm)';
+}
+
+// 자동 크기 토글
+function toggleAutoSize() {
+    var checked = document.getElementById('auto-size').checked;
+    var dimSelect = document.getElementById('target_dimension');
+    var sizeGroup = document.getElementById('target_size_group');
+    var sizeInput = document.getElementById('target_size');
+
+    if (checked) {
+        dimSelect.disabled = true;
+        dimSelect.parentElement.style.opacity = '0.4';
+        sizeGroup.style.display = 'none';
+        sizeInput.removeAttribute('name');
+        sizeInput.value = '';
+        dimSelect.removeAttribute('name');
+        // 파일이 이미 선택되어 있으면 자동 제출
+        autoSubmitIfFileReady();
+    } else {
+        dimSelect.disabled = false;
+        dimSelect.parentElement.style.opacity = '1';
+        sizeGroup.style.display = 'block';
+        sizeInput.setAttribute('name', 'target_size');
+        dimSelect.setAttribute('name', 'target_dimension');
+    }
+}
+
+// 자동 모드에서 파일이 있으면 바로 제출
+function autoSubmitIfFileReady() {
+    var fileInput = document.getElementById('image');
+    var autoChecked = document.getElementById('auto-size').checked;
+    if (autoChecked && fileInput.files.length > 0) {
+        document.querySelector('.image-form').dispatchEvent(new Event('submit', {bubbles: true, cancelable: true}));
+        htmx.trigger(document.querySelector('.image-form'), 'submit');
+    }
+}
 
 // 비율 계산 모드 토글
 function toggleRatioMode() {
@@ -308,19 +380,44 @@ function updateDesignFileRequired() {
     }
 }
 
+// 자동 첨부 파일 제거
+function removeAutoAttached() {
+    document.getElementById('auto-attached-file').style.display = 'none';
+    document.getElementById('design_file').style.display = '';
+    document.getElementById('design_file_hint').style.display = '';
+    document.getElementById('order_ratio_file').value = '';
+    window.ratioFilePath = '';
+    updateDesignFileRequired();
+}
+
 // 비율 계산 섹션 초기화
 function resetRatio() {
     var form = document.querySelector('#ratio-calc-section .image-form');
     if (form) form.reset();
     document.getElementById('skip-ratio').checked = false;
+    document.getElementById('auto-size').checked = false;
     document.getElementById('image-result').innerHTML = '';
-    document.getElementById('target_size_label').textContent = '원하는 가로 (mm)';
+    window.ratioFilePath = '';
+    toggleAutoSize();
     ratioUsed = false;
+    unlockSizeFields();
     toggleRatioMode();
+}
+
+// 가로/세로 입력 잠금 해제
+function unlockSizeFields() {
+    var w = document.getElementById('width');
+    var h = document.getElementById('height');
+    w.readOnly = false;
+    h.readOnly = false;
+    w.classList.remove('readonly-field');
+    h.classList.remove('readonly-field');
+    window.ratioLocked = false;
 }
 
 // 단가 계산 섹션 초기화
 function resetCalc() {
+    unlockSizeFields();
     document.querySelector('.calculator-form').reset();
     document.getElementById('result').innerHTML = '<p class="placeholder">위 정보를 입력하시면 자동으로 계산됩니다.</p>';
     document.getElementById('order-section').style.display = 'none';
@@ -338,6 +435,36 @@ function updateOrderTotal() {
     templateRow.style.display = templateChecked ? 'flex' : 'none';
     document.getElementById('order-subtotal-price').textContent = totalBeforeVat.toLocaleString() + '원';
     document.getElementById('order-final-price').textContent = totalWithVat.toLocaleString() + '원';
+    // 최종 금액 저장 (주문 완료 화면에서 사용)
+    window.orderFinalPrice = totalWithVat;
+}
+
+// 주문 신청 페이지로 전환
+function goToOrderForm() {
+    var w = document.getElementById('width').value;
+    var h = document.getElementById('height').value;
+    var qty = document.getElementById('quantity').value;
+    var basePrice = window.calcPrice || 0;
+
+    // 요약 바 업데이트
+    var finalPrice = Math.floor(basePrice * 1.1);
+    var summaryBar = document.getElementById('order-summary-bar');
+    summaryBar.innerHTML = '<span>' + w + 'mm × ' + h + 'mm</span><span>수량: ' + qty + '개</span><span>결제 금액: ' + finalPrice.toLocaleString() + '원 (VAT포함)</span>';
+
+    // 계산기 영역 숨기기, 주문 폼 보이기
+    document.getElementById('calc-area').style.display = 'none';
+    document.getElementById('order-section').style.display = 'block';
+    updateOrderTotal();
+    window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+// 계산기로 돌아가기
+function backToCalculator() {
+    document.getElementById('order-section').style.display = 'none';
+    document.getElementById('calc-area').style.display = 'block';
+    // 결과 영역으로 스크롤
+    var resultEl = document.getElementById('result');
+    if (resultEl) resultEl.scrollIntoView({behavior: 'smooth'});
 }
 
 // 주문 신청 섹션 초기화
@@ -433,9 +560,9 @@ function resetOrder() {
 .btn-secondary {
     width: 100%;
     padding: 12px;
-    background: #f0f0f0;
-    color: #333;
-    border: none;
+    background: #fff;
+    color: #F4B900;
+    border: 2px solid #F4B900;
     border-radius: 8px;
     font-size: 15px;
     font-weight: 600;
@@ -444,7 +571,8 @@ function resetOrder() {
 }
 
 .btn-secondary:hover {
-    background: #e0e0e0;
+    background: #F4B900;
+    color: #fff;
 }
 
 .order-section {
@@ -485,6 +613,152 @@ function resetOrder() {
 .btn-order:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 16px rgba(244, 185, 0, 0.6);
+}
+
+/* 주문 신청하기 버튼 (결과 하단) */
+.btn-go-order {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #F4B900 0%, #E5A800 100%);
+    color: #1A1A1A;
+    border: none;
+    border-radius: 8px;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 16px;
+}
+
+.btn-go-order:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(244, 185, 0, 0.6);
+}
+
+/* 돌아가기 버튼 */
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 16px;
+    background: #fff;
+    color: #666;
+    border: 1.5px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 16px;
+}
+
+.btn-back:hover {
+    color: #F4B900;
+    border-color: #F4B900;
+}
+
+/* 주문 요약 바 */
+.order-summary-bar {
+    display: flex;
+    justify-content: space-between;
+    padding: 14px 20px;
+    background: #fffbf0;
+    border: 2px solid #F4B900;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.order-summary-bar span {
+    display: flex;
+    align-items: center;
+}
+
+/* 헤더 하단 구분선 */
+.header-divider {
+    border: none;
+    border-top: 2px solid #F4B900;
+    margin: 16px 0 8px 0;
+}
+
+/* 주문 폼 내 구분선 */
+.order-divider {
+    border: none;
+    border-top: 1px solid #e8e8e8;
+    margin: 20px 0;
+}
+
+/* 읽기 전용 필드 (비율/자동 계산 적용 시) */
+.readonly-field {
+    background: #f0f0f0 !important;
+    color: #888 !important;
+    border-color: #ccc !important;
+    cursor: not-allowed;
+}
+
+/* 자동 크기 토글 */
+.auto-size-toggle-wrap {
+    margin-bottom: 12px;
+    padding: 14px 16px;
+    background: #f5f5f5;
+    border-radius: 10px;
+    border: 1px solid #e0e0e0;
+}
+
+.auto-size-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    color: #333;
+}
+
+.auto-size-hint {
+    display: block;
+    margin-top: 8px;
+    margin-left: 28px;
+    font-size: 13px;
+    color: #888;
+}
+
+.auto-size-toggle input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #F4B900;
+}
+
+/* 자동 첨부 파일 표시 */
+.auto-attached {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #155724;
+    margin-bottom: 8px;
+}
+
+.btn-remove-file {
+    background: none;
+    border: 1px solid #155724;
+    color: #155724;
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: 600;
+}
+.btn-remove-file:hover {
+    background: #155724;
+    color: white;
 }
 
 /* 파일 포맷 힌트 (한 줄) */

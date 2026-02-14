@@ -96,9 +96,16 @@
         <div class="detail-section">
             <h2>첨부 파일</h2>
             <div class="file-attachment">
-                <a href="{{ order.file_path }}" target="_blank" class="btn-download">
-                    📎 파일 다운로드
-                </a>
+                {% set ext = order.file_path.split('.')[-1].lower() %}
+                {% if ext in ['png', 'jpg', 'jpeg', 'gif', 'bmp'] %}
+                <div class="file-preview">
+                    <img src="{{ order.file_path }}" alt="첨부 이미지" class="preview-image">
+                </div>
+                {% endif %}
+                <div class="file-actions">
+                    <a href="{{ order.file_path }}" target="_blank" class="btn-download">📎 파일 보기</a>
+                    <a href="/admin/orders/{{ order.order_id }}/file" class="btn-download btn-download-file">💾 다운로드</a>
+                </div>
             </div>
         </div>
         {% endif %}
@@ -180,6 +187,23 @@
     border-radius: 8px;
 }
 
+.file-preview {
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.preview-image {
+    max-width: 100%;
+    max-height: 400px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.file-actions {
+    display: flex;
+    gap: 12px;
+}
+
 .btn-download {
     display: inline-block;
     padding: 10px 20px;
@@ -188,6 +212,11 @@
     text-decoration: none;
     border-radius: 6px;
     font-weight: 600;
+}
+
+.btn-download-file {
+    background: #28a745;
+    color: white;
 }
 
 .notes-box {

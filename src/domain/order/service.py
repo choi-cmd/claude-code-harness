@@ -39,10 +39,10 @@ class OrderService:
 
         if request.target_dimension == "height":
             target_height = request.target_size
-            target_width = round(request.target_size * ratio, 2)
+            target_width = round(request.target_size * ratio)
         else:
             target_width = request.target_size
-            target_height = round(request.target_size / ratio, 2)
+            target_height = round(request.target_size / ratio)
 
         return ImageRatioResponse(
             original_width=request.original_width,

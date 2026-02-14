@@ -1,7 +1,7 @@
 {
   "name": "서블리원 아크릴 주문제작",
   "short_name": "서블리원",
-  "description": "서블리원 아크릴 주문제작 신청시트",
+  "description": "서블리원 아크릴 주문제작 프로그램",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1A1A1A",

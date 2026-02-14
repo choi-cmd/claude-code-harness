@@ -20,14 +20,32 @@
                 <td><strong>{{ order.quantity }}개</strong></td>
             </tr>
             <tr>
-                <td>총 금액</td>
-                <td><strong class="text-primary">{{ "{:,}".format(order.total_price) }}원</strong></td>
+                <td>총 금액 (VAT포함)</td>
+                <td><strong class="text-primary" id="success-final-price">{{ "{:,}".format((order.total_price * 1.1)|int) }}원</strong></td>
             </tr>
         </table>
     </div>
 
     <button onclick="location.reload()" class="btn-new-order">새로운 견적 요청</button>
 </div>
+
+<script>
+    // 주문 완료 후 폼 영역 숨기기 (중복 제출 방지)
+    var orderForm = document.querySelector('.order-form');
+    if (orderForm) orderForm.style.display = 'none';
+    var summaryBar = document.getElementById('order-summary-bar');
+    if (summaryBar) summaryBar.style.display = 'none';
+    var resetBtn = document.querySelector('#order-section .btn-section-reset');
+    if (resetBtn) resetBtn.style.display = 'none';
+    var sectionHeader = document.querySelector('#order-section .section-divider');
+    if (sectionHeader) sectionHeader.style.display = 'none';
+    var backBtn = document.querySelector('#order-section .btn-back');
+    if (backBtn) backBtn.style.display = 'none';
+    // 작업틀 비용 + VAT 포함 최종 금액 반영
+    if (window.orderFinalPrice) {
+        document.getElementById('success-final-price').textContent = window.orderFinalPrice.toLocaleString() + '원';
+    }
+</script>
 
 <style>
 .success-card {
