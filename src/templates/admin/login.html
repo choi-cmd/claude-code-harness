@@ -1,4 +1,11 @@
 {% extends "base.html" %}
+{% block pwa %}
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="주문 관리">
+    <link rel="apple-touch-icon" href="/static/images/icon-192.png">
+    <link rel="manifest" href="/static/manifest-admin.json">
+{% endblock %}
 
 {% block content %}
 <div class="admin-login-card">
