@@ -1,0 +1,107 @@
+<div class="success-card">
+    <div class="success-icon">✅</div>
+    <h2>주문 신청 완료!</h2>
+
+    <div class="success-info">
+        <p class="order-number">주문번호: <strong>{{ order.order_id }}</strong></p>
+        <p>{{ order.customer_name }}님, 주문이 정상적으로 접수되었습니다.</p>
+        <p>담당자가 확인 후 연락드리겠습니다.</p>
+    </div>
+
+    <div class="order-summary">
+        <h3>주문 요약</h3>
+        <table>
+            <tr>
+                <td>제품 크기</td>
+                <td><strong>{{ order.width }}mm × {{ order.height }}mm</strong></td>
+            </tr>
+            <tr>
+                <td>주문 수량</td>
+                <td><strong>{{ order.quantity }}개</strong></td>
+            </tr>
+            <tr>
+                <td>총 금액</td>
+                <td><strong class="text-primary">{{ "{:,}".format(order.total_price) }}원</strong></td>
+            </tr>
+        </table>
+    </div>
+
+    <button onclick="location.reload()" class="btn-new-order">새로운 견적 요청</button>
+</div>
+
+<style>
+.success-card {
+    background: white;
+    border-radius: 12px;
+    padding: 40px;
+    text-align: center;
+    animation: fadeIn 0.5s;
+}
+
+.success-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+}
+
+.success-card h2 {
+    color: #5C5C5C;
+    margin-bottom: 24px;
+}
+
+.success-info {
+    margin-bottom: 32px;
+    line-height: 1.8;
+}
+
+.order-number {
+    font-size: 18px;
+    color: #F4B900;
+    margin-bottom: 16px;
+}
+
+.order-summary {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.order-summary h3 {
+    font-size: 16px;
+    color: #5C5C5C;
+    margin-bottom: 16px;
+}
+
+.order-summary table {
+    width: 100%;
+}
+
+.order-summary tr {
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.order-summary tr:last-child {
+    border-bottom: none;
+}
+
+.order-summary td {
+    padding: 12px 0;
+    text-align: left;
+}
+
+.order-summary td:first-child {
+    color: #666;
+    width: 40%;
+}
+
+.btn-new-order {
+    padding: 14px 32px;
+    background: linear-gradient(135deg, #F4B900 0%, #E5A800 100%);
+    color: #1A1A1A;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+}
+</style>

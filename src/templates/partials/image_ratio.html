@@ -1,0 +1,118 @@
+<div class="ratio-result-card">
+    <h3>✅ 비율 계산 완료</h3>
+
+    {% if is_transparent %}
+    <div class="info-badge">
+        <span class="badge-icon">🎯</span>
+        <span>투명 배경 제외한 실제 객체 크기로 계산되었습니다</span>
+    </div>
+    {% else %}
+    <div class="info-badge warning">
+        <span class="badge-icon">⚠️</span>
+        <span>전체 이미지 크기로 계산됨 (PNG 투명 배경 권장)</span>
+    </div>
+    {% endif %}
+
+    <div class="ratio-info">
+        <div class="ratio-item">
+            <span class="label">{% if is_transparent %}실제 객체 크기:{% else %}원본 크기:{% endif %}</span>
+            <span class="value">{{ result.original_width|int }} × {{ result.original_height|int }} px</span>
+        </div>
+        <div class="ratio-item">
+            <span class="label">비율:</span>
+            <span class="value">{{ result.ratio }}</span>
+        </div>
+        <div class="ratio-item highlight-box">
+            <span class="label">계산된 크기 ({% if result.target_dimension == 'height' %}세로{% else %}가로{% endif %} 기준):</span>
+            <span class="value"><strong>{{ result.target_width }}mm × {{ result.target_height }}mm</strong></span>
+        </div>
+    </div>
+
+    <p class="hint">이 크기가 자동으로 단가 계산에 적용됩니다</p>
+
+    <!-- 숨겨진 input으로 계산 폼에 전달 -->
+    <script>
+        document.getElementById('width').value = {{ result.target_width }};
+        document.getElementById('height').value = {{ result.target_height }};
+        // 계산 트리거
+        document.querySelector('.calculator-form').dispatchEvent(new Event('submit'));
+    </script>
+</div>
+
+<style>
+.ratio-result-card {
+    background: #fffdf5;
+    border: 2px solid #F4B900;
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 16px;
+}
+
+.ratio-result-card h3 {
+    color: #5C5C5C;
+    margin-bottom: 16px;
+    font-size: 16px;
+}
+
+.ratio-info {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ratio-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px;
+}
+
+.ratio-item .label {
+    color: #666;
+}
+
+.ratio-item .value {
+    font-weight: 600;
+    color: #333;
+}
+
+.highlight-box {
+    background: #fff;
+    border-radius: 8px;
+    padding: 12px !important;
+}
+
+.highlight-box .value strong {
+    color: #F4B900;
+    font-size: 18px;
+}
+
+.hint {
+    margin-top: 12px;
+    font-size: 13px;
+    color: #666;
+    text-align: center;
+}
+
+.info-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: #155724;
+}
+
+.info-badge.warning {
+    background: #fff3cd;
+    border-color: #ffeaa7;
+    color: #856404;
+}
+
+.badge-icon {
+    font-size: 18px;
+}
+</style>

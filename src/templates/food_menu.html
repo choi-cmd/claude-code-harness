@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>오늘 뭐 먹지?</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🍽️ 오늘 뭐 먹지? 🍽️</h1>
+
+        <button id="menuButton" class="menu-button">
+            메뉴 추천받기
+        </button>
+
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        // 음식 메뉴 목록
+        const foodMenu = [
+            '🍕 피자',
+            '🍔 햄버거',
+            '🍜 라면',
+            '🍣 초밥',
+            '🍛 카레',
+            '🍝 파스타',
+            '🥘 찌개',
+            '🍱 도시락',
+            '🌮 타코',
+            '🍗 치킨',
+            '🥗 샐러드',
+            '🍲 국밥',
+            '🍙 주먹밥',
+            '🥙 케밥',
+            '🍩 디저트',
+            '🌭 핫도그',
+            '🥪 샌드위치',
+            '🍖 고기',
+            '🍤 튀김',
+            '🥟 만두'
+        ];
+
+        // 버튼 클릭 이벤트
+        document.getElementById('menuButton').addEventListener('click', function() {
+            // 랜덤 메뉴 선택
+            const randomIndex = Math.floor(Math.random() * foodMenu.length);
+            const selectedMenu = foodMenu[randomIndex];
+
+            // 결과 표시
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = selectedMenu;
+            resultDiv.classList.add('show');
+
+            // 애니메이션 효과
+            resultDiv.style.animation = 'none';
+            setTimeout(() => {
+                resultDiv.style.animation = 'fadeInScale 0.5s ease-out';
+            }, 10);
+        });
+    </script>
+</body>
+</html>

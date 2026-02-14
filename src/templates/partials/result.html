@@ -1,0 +1,72 @@
+<div class="result-card">
+    <div class="result-header">
+        <h2>💰 계산 결과</h2>
+        {% if result.is_sample %}
+        <span class="badge badge-warning">샘플 제작</span>
+        {% else %}
+        <span class="badge badge-success">정규 제작</span>
+        {% endif %}
+    </div>
+
+    <div class="result-section">
+        <h3>📐 제품 정보</h3>
+        <table class="result-table">
+            <tr>
+                <td>제품 크기</td>
+                <td><strong>{{ result.width }}mm × {{ result.height }}mm</strong></td>
+            </tr>
+            <tr>
+                <td>1판 최소 수량</td>
+                <td><strong class="highlight">{{ result.min_quantity }}개</strong></td>
+            </tr>
+            <tr>
+                <td>배치 정보</td>
+                <td>{{ result.layout_info }}</td>
+            </tr>
+            <tr>
+                <td>주문 수량</td>
+                <td><strong>{{ result.quantity }}개</strong></td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="result-section">
+        <h3>💵 가격 정보</h3>
+        <table class="result-table">
+            <tr>
+                <td>개당 단가</td>
+                <td><strong>{{ "{:,}".format(result.unit_price) }}원</strong></td>
+            </tr>
+            <tr>
+                <td>소계</td>
+                <td>{{ "{:,}".format(result.subtotal) }}원</td>
+            </tr>
+            {% if result.sample_fee > 0 %}
+            <tr class="warning-row">
+                <td>샘플비</td>
+                <td><strong class="text-warning">+{{ "{:,}".format(result.sample_fee) }}원</strong></td>
+            </tr>
+            {% endif %}
+            <tr class="total-row">
+                <td>총 금액 (VAT별도)</td>
+                <td><strong>{{ "{:,}".format(result.total_price) }}원</strong></td>
+            </tr>
+            <tr class="total-row vat-row">
+                <td>총 금액 (VAT포함)</td>
+                <td><strong class="text-vat-total">{{ "{:,}".format((result.total_price * 1.1)|int) }}원</strong></td>
+            </tr>
+        </table>
+    </div>
+
+    <script>window.calcPrice = {{ result.total_price }};</script>
+
+    {% if result.is_sample %}
+    <div class="alert alert-warning">
+        ⚠️ 최소 수량({{ result.min_quantity }}개)보다 적게 주문하셔서 샘플비 10,000원이 추가되었습니다.
+    </div>
+    {% else %}
+    <div class="alert alert-success">
+        ✅ 최소 수량을 충족하여 정규 제작 가격이 적용되었습니다.
+    </div>
+    {% endif %}
+</div>

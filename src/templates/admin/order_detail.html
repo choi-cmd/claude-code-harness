@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>📋 주문 상세</h1>
+        <div class="admin-actions">
+            <a href="/admin/orders" class="btn-secondary">목록으로</a>
+        </div>
+    </div>
+
+    <div class="order-detail-card">
+        <div class="detail-section">
+            <h2>주문 정보</h2>
+            <table class="detail-table">
+                <tr>
+                    <td>주문번호</td>
+                    <td><strong>{{ order.order_id }}</strong></td>
+                </tr>
+                <tr>
+                    <td>주문일시</td>
+                    <td>{{ order.created_at }}</td>
+                </tr>
+                <tr>
+                    <td>상태</td>
+                    <td>
+                        <span class="status-badge status-{{ order.status }}">
+                            {{ order.status }}
+                        </span>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="detail-section">
+            <h2>고객 정보</h2>
+            <table class="detail-table">
+                <tr>
+                    <td>이름</td>
+                    <td><strong>{{ order.customer_name }}</strong></td>
+                </tr>
+                <tr>
+                    <td>연락처</td>
+                    <td>{{ order.customer_phone }}</td>
+                </tr>
+                <tr>
+                    <td>이메일</td>
+                    <td>{{ order.customer_email }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="detail-section">
+            <h2>제품 정보</h2>
+            <table class="detail-table">
+                <tr>
+                    <td>크기</td>
+                    <td><strong>{{ order.width }}mm × {{ order.height }}mm</strong></td>
+                </tr>
+                <tr>
+                    <td>주문 수량</td>
+                    <td><strong>{{ order.quantity }}개</strong></td>
+                </tr>
+                <tr>
+                    <td>최소 수량</td>
+                    <td>{{ order.min_quantity }}개</td>
+                </tr>
+                <tr>
+                    <td>샘플 제작</td>
+                    <td>
+                        {% if order.is_sample %}
+                        <span class="badge-warning">예 (+10,000원)</span>
+                        {% else %}
+                        <span class="badge-success">아니오</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="detail-section">
+            <h2>가격 정보</h2>
+            <table class="detail-table">
+                <tr>
+                    <td>개당 단가</td>
+                    <td>{{ "{:,}".format(order.unit_price) }}원</td>
+                </tr>
+                <tr>
+                    <td>총 금액</td>
+                    <td><strong class="text-primary">{{ "{:,}".format(order.total_price) }}원</strong></td>
+                </tr>
+            </table>
+        </div>
+
+        {% if order.file_path %}
+        <div class="detail-section">
+            <h2>첨부 파일</h2>
+            <div class="file-attachment">
+                <a href="{{ order.file_path }}" target="_blank" class="btn-download">
+                    📎 파일 다운로드
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if order.notes %}
+        <div class="detail-section">
+            <h2>요청사항</h2>
+            <div class="notes-box">
+                {{ order.notes }}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.order-detail-card {
+    background: white;
+    border-radius: 12px;
+    padding: 32px;
+}
+
+.detail-section {
+    margin-bottom: 32px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.detail-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.detail-section h2 {
+    font-size: 18px;
+    color: #5C5C5C;
+    margin-bottom: 16px;
+}
+
+.detail-table {
+    width: 100%;
+}
+
+.detail-table tr {
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.detail-table td {
+    padding: 12px 0;
+}
+
+.detail-table td:first-child {
+    width: 30%;
+    color: #666;
+}
+
+.badge-warning {
+    padding: 4px 12px;
+    background: #fff3cd;
+    color: #856404;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.badge-success {
+    padding: 4px 12px;
+    background: #d4edda;
+    color: #155724;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.file-attachment {
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.btn-download {
+    display: inline-block;
+    padding: 10px 20px;
+    background: #F4B900;
+    color: #1A1A1A;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+.notes-box {
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    line-height: 1.6;
+}
+</style>
+{% endblock %}
