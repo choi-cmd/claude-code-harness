@@ -1,6 +1,6 @@
 {
-  "name": "서블리원 아크릴 주문관리",
-  "short_name": "아크릴 주문관리",
+  "name": "서블리원 Custom Order",
+  "short_name": "Custom Order",
   "description": "서블리원 아크릴 주문제작 관리자",
   "start_url": "/admin/orders",
   "display": "standalone",
