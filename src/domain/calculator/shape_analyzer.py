@@ -113,8 +113,11 @@ def _analyze_contours(contours: list) -> ShapeMetrics | None:
         vertex_count = 4
         circularity = math.pi / 4  # 정사각형 원형도 ≈ 0.785
 
-    # 복잡도 점수 계산
-    complexity = _calculate_complexity(circularity, vertex_count, perimeter, area)
+    # 예각 비율 계산 (레이저 재단 시 감속 필요 구간)
+    acute_ratio = _calculate_acute_ratio(approx)
+
+    # 복잡도 점수 계산 (레이저 재단 기준)
+    complexity = _calculate_complexity(vertex_count, perimeter, area, acute_ratio)
 
     return ShapeMetrics(
         contour_area_px=area,
@@ -407,38 +410,78 @@ def _create_mask_by_corner_sampling(img: np.ndarray) -> np.ndarray | None:
     return mask
 
 
+def _calculate_acute_ratio(approx_poly: np.ndarray) -> float:
+    """
+    근사 폴리곤에서 예각(90° 미만) 꼭짓점의 비율 계산.
+    레이저 재단 시 예각 구간은 감속이 필요하여 난이도가 높다.
+
+    Returns:
+        예각 비율 (0~1)
+    """
+    pts = approx_poly.reshape(-1, 2)
+    n = len(pts)
+    if n < 3:
+        return 0.0
+
+    acute_count = 0
+    for i in range(n):
+        p1 = pts[(i - 1) % n].astype(float)
+        p2 = pts[i].astype(float)
+        p3 = pts[(i + 1) % n].astype(float)
+
+        v1 = p1 - p2
+        v2 = p3 - p2
+        dot = np.dot(v1, v2)
+        mag1 = np.linalg.norm(v1)
+        mag2 = np.linalg.norm(v2)
+
+        if mag1 == 0 or mag2 == 0:
+            continue
+
+        cos_angle = dot / (mag1 * mag2)
+        cos_angle = max(-1.0, min(1.0, cos_angle))
+        angle_deg = math.degrees(math.acos(cos_angle))
+
+        if angle_deg < 90:
+            acute_count += 1
+
+    return acute_count / n if n > 0 else 0.0
+
+
 def _calculate_complexity(
-    circularity: float,
     vertex_count: int,
     perimeter: float,
     area: float,
+    acute_ratio: float,
 ) -> float:
     """
-    형상 복잡도 점수 산출 (0~1)
+    레이저 재단 복잡도 점수 (0~1)
 
-    3가지 요소의 가중 합산:
-    - 원형도 반전 (복잡할수록 높음) : 40%
-    - 꼭짓점 밀도 : 30%
-    - 둘레/면적 비율 : 30%
+    레이저 커팅 난이도에 영향을 주는 요소:
+    - 꼭짓점 수 (방향 전환 횟수) : 40%  → 레이저 헤드 감속/가속
+    - 예각 비율 (90° 미만 꼭짓점) : 35% → 날카로운 모서리 정밀 커팅
+    - 둘레/면적 비율 : 25%               → 면적 대비 커팅 경로 길이
     """
-    # 1. 원형도 반전 (원형=0, 복잡=1)
-    complexity_circularity = 1.0 - circularity
+    # 1. 꼭짓점 수 (4=사각형, 20+이면 복잡)
+    #    4개 이하: 0, 4~20: 선형 증가, 20+: 1
+    vertex_norm = min(max((vertex_count - 4) / 16, 0), 1)
 
-    # 2. 꼭짓점 밀도 (4~50개 범위로 정규화)
-    vertex_norm = min(max((vertex_count - 4) / 46, 0), 1)
+    # 2. 예각 비율 (0=모두 둔각, 1=모두 예각)
+    acute_norm = min(acute_ratio, 1.0)
 
-    # 3. 둘레/면적 비율 (높을수록 복잡)
+    # 3. 둘레/면적 비율 (면적 대비 커팅 경로가 길수록 복잡)
     if area > 0:
-        # 원의 둘레/면적 비율을 기준으로 정규화
-        # 원: perimeter/sqrt(area) = 2*sqrt(pi) ≈ 3.545
+        # 원: perimeter/sqrt(area) ≈ 3.545 (가장 효율적)
+        # 사각형: ≈ 4.0
+        # 복잡한 형상: 6.0+
         ratio = perimeter / math.sqrt(area)
-        pa_norm = min(max((ratio - 3.545) / 10, 0), 1)
+        pa_norm = min(max((ratio - 4.0) / 8.0, 0), 1)
     else:
         pa_norm = 0
 
     score = (
-        complexity_circularity * 0.4
-        + vertex_norm * 0.3
-        + pa_norm * 0.3
+        vertex_norm * 0.40
+        + acute_norm * 0.35
+        + pa_norm * 0.25
     )
     return min(max(score, 0), 1)
