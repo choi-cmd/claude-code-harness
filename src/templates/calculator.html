@@ -48,6 +48,15 @@
                         accept="image/*,.ai,.psd"
                         class="file-input"
                     >
+                    <div id="image-preview-container" class="image-preview-container" style="display:none;">
+                        <div class="image-preview-wrap">
+                            <img id="image-preview" src="" alt="미리보기">
+                        </div>
+                        <div class="image-preview-info">
+                            <span id="image-preview-name" class="image-preview-name"></span>
+                            <button type="button" onclick="clearImagePreview()" class="btn-preview-remove">✕</button>
+                        </div>
+                    </div>
                 </div>
                 <div class="form-group flex-1">
                     <label for="target_dimension">기준 방향</label>
@@ -358,8 +367,28 @@ document.querySelector('.image-form').addEventListener('htmx:afterRequest', func
     btn.querySelector('.btn-ratio-loading').style.display = 'none';
 });
 
-// 파일 선택 시 자동 모드면 바로 제출
-document.getElementById('image').addEventListener('change', function() {
+// 파일 선택 시 미리보기 + 자동 모드면 바로 제출
+document.getElementById('image').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    var container = document.getElementById('image-preview-container');
+    var preview = document.getElementById('image-preview');
+    var nameSpan = document.getElementById('image-preview-name');
+
+    if (file) {
+        nameSpan.textContent = file.name;
+        if (file.type.startsWith('image/')) {
+            var url = URL.createObjectURL(file);
+            preview.onload = function() { URL.revokeObjectURL(url); };
+            preview.src = url;
+            preview.style.display = 'block';
+        } else {
+            // .ai, .psd 등 미리보기 불가
+            preview.style.display = 'none';
+        }
+        container.style.display = 'flex';
+    } else {
+        container.style.display = 'none';
+    }
     autoSubmitIfFileReady();
 });
 
@@ -433,6 +462,16 @@ function removeAutoAttached() {
     updateDesignFileRequired();
 }
 
+// 이미지 미리보기 제거
+function clearImagePreview() {
+    var container = document.getElementById('image-preview-container');
+    var preview = document.getElementById('image-preview');
+    var fileInput = document.getElementById('image');
+    container.style.display = 'none';
+    preview.src = '';
+    fileInput.value = '';
+}
+
 // 비율 계산 섹션 초기화
 function resetRatio() {
     var form = document.querySelector('#ratio-calc-section .image-form');
@@ -440,6 +479,7 @@ function resetRatio() {
     document.getElementById('auto-size').checked = false;
     document.getElementById('image-result').innerHTML = '';
     window.ratioFilePath = '';
+    clearImagePreview();
     toggleAutoSize();
     ratioUsed = false;
     unlockSizeFields();
@@ -1096,6 +1136,81 @@ document.querySelector('.order-form').addEventListener('htmx:afterRequest', func
 .order-price-total strong {
     font-size: 22px;
     color: #F4B900;
+}
+
+/* 이미지 미리보기 */
+.image-preview-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 10px;
+    padding: 10px;
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+}
+
+.image-preview-wrap {
+    flex-shrink: 0;
+    width: 80px;
+    height: 80px;
+    border-radius: 6px;
+    overflow: hidden;
+    background:
+        linear-gradient(45deg, #e0e0e0 25%, transparent 25%),
+        linear-gradient(-45deg, #e0e0e0 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #e0e0e0 75%),
+        linear-gradient(-45deg, transparent 75%, #e0e0e0 75%);
+    background-size: 12px 12px;
+    background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.image-preview-wrap img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.image-preview-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+}
+
+.image-preview-name {
+    font-size: 13px;
+    color: #555;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.btn-preview-remove {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border: 1px solid #ccc;
+    background: #fff;
+    border-radius: 50%;
+    font-size: 14px;
+    color: #888;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-preview-remove:hover {
+    background: #ff4444;
+    border-color: #ff4444;
+    color: #fff;
 }
 
 </style>
