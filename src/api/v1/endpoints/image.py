@@ -93,7 +93,10 @@ async def upload_image(
                 target_dimension="auto",
             )
         else:
-            # 비율 계산
+            # 비율 계산 - target_size 필수
+            if target_size is None or target_size <= 0:
+                raise ValueError("원하는 크기(mm)를 입력해 주세요")
+
             service = OrderService()
             ratio_request = ImageRatioRequest(
                 original_width=original_width,
@@ -150,5 +153,17 @@ async def upload_image(
             },
         )
 
+    except ValueError as e:
+        return HTMLResponse(
+            f'<div class="ratio-result-card ratio-error">'
+            f'<h3>⚠️ 입력 오류</h3>'
+            f'<p style="color:#856404;font-size:14px;">{str(e)}</p></div>',
+            status_code=200,
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"이미지 처리 오류: {str(e)}")
+        return HTMLResponse(
+            f'<div class="ratio-result-card ratio-error">'
+            f'<h3>❌ 처리 오류</h3>'
+            f'<p style="color:#c0392b;font-size:14px;">이미지 처리 중 오류가 발생했습니다: {str(e)}</p></div>',
+            status_code=200,
+        )
