@@ -731,6 +731,15 @@ function submitManualMask() {
                 newScript.textContent = oldScript.textContent;
                 oldScript.parentNode.replaceChild(newScript, oldScript);
             });
+            // 수동 선택 완료 → 계산 버튼 활성화 + blockedByManual 해제
+            var calcBtn = document.getElementById('btn-calculate');
+            if (calcBtn) {
+                calcBtn.disabled = false;
+                delete calcBtn.dataset.blockedByManual;
+            }
+            if (typeof enableCalculateButton === 'function') {
+                enableCalculateButton();
+            }
         }
     })
     .catch(function(err) {
