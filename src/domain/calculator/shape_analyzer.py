@@ -134,19 +134,99 @@ def _create_mask(img: np.ndarray) -> np.ndarray | None:
         _, mask = cv2.threshold(alpha, 10, 255, cv2.THRESH_BINARY)
         return mask
 
-    # 그레이스케일 변환
+    # RGB (JPG 등) - 모서리 배경색 샘플링 방식 시도
+    if len(img.shape) == 3:
+        mask = _create_mask_by_corner_sampling(img)
+        if mask is not None:
+            return mask
+
+    # 폴백: 기존 Otsu 이진화
     if len(img.shape) == 3:
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     else:
         gray = img
 
-    # Otsu 이진화 (배경과 전경 자동 분리)
     _, mask = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
 
     # 배경이 어두운 경우 반전
     white_ratio = np.count_nonzero(mask) / mask.size
     if white_ratio > 0.5:
         mask = cv2.bitwise_not(mask)
+
+    return mask
+
+
+def _create_mask_by_corner_sampling(img: np.ndarray) -> np.ndarray | None:
+    """
+    모서리 배경색 샘플링으로 배경 분리
+
+    네 모서리의 10×10px 영역을 샘플링하여 가장 빈도 높은 색상을
+    배경색으로 추정하고, 유클리드 거리 기반으로 배경/전경을 분리합니다.
+
+    Args:
+        img: BGR 이미지 (3채널)
+
+    Returns:
+        전경 마스크 또는 실패 시 None
+    """
+    h, w = img.shape[:2]
+    sample_size = 10
+
+    if h < sample_size * 2 or w < sample_size * 2:
+        return None
+
+    # 네 모서리 10×10px 영역 샘플링
+    corners = [
+        img[0:sample_size, 0:sample_size],                    # 좌상
+        img[0:sample_size, w - sample_size:w],                # 우상
+        img[h - sample_size:h, 0:sample_size],                # 좌하
+        img[h - sample_size:h, w - sample_size:w],            # 우하
+    ]
+
+    # 모든 모서리 픽셀을 모아 최빈 색상 계산
+    all_pixels = np.vstack([c.reshape(-1, 3) for c in corners])
+
+    # 색상 양자화 (8단위)하여 최빈 배경색 추정
+    quantized = (all_pixels // 8) * 8
+    # 각 픽셀을 단일 정수로 변환하여 최빈값 계산
+    pixel_keys = (
+        quantized[:, 0].astype(np.int32) * 65536
+        + quantized[:, 1].astype(np.int32) * 256
+        + quantized[:, 2].astype(np.int32)
+    )
+    unique_keys, counts = np.unique(pixel_keys, return_counts=True)
+    dominant_key = unique_keys[np.argmax(counts)]
+
+    # 최빈 색상 복원
+    bg_color = np.array([
+        (dominant_key // 65536) & 0xFF,
+        (dominant_key // 256) & 0xFF,
+        dominant_key & 0xFF,
+    ], dtype=np.float32)
+
+    # 최빈 색상이 모서리 픽셀의 50% 이상이어야 배경색으로 신뢰
+    dominant_ratio = np.max(counts) / len(pixel_keys)
+    if dominant_ratio < 0.5:
+        return None
+
+    # 각 픽셀과 배경색의 유클리드 거리 계산
+    img_float = img.astype(np.float32)
+    diff = img_float - bg_color
+    distance = np.sqrt(np.sum(diff * diff, axis=2))
+
+    # 임계값 이내 = 배경 (0), 나머지 = 전경 (255)
+    threshold = 35
+    mask = np.where(distance > threshold, 255, 0).astype(np.uint8)
+
+    # 모폴로지 연산으로 노이즈 제거
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)   # 작은 노이즈 제거
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)  # 내부 구멍 메우기
+
+    # 전경이 너무 적거나 너무 많으면 실패로 간주
+    fg_ratio = np.count_nonzero(mask) / mask.size
+    if fg_ratio < 0.01 or fg_ratio > 0.95:
+        return None
 
     return mask
 

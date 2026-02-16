@@ -11,21 +11,13 @@
     <hr class="header-divider">
 
     <div id="calc-area">
-    <!-- 이미지 비율 계산기 -->
+    <!-- 이미지 업로드 (필수) -->
     <div class="section-divider section-with-reset">
         <div>
-            <h2>📐 이미지 비율 계산 (선택)</h2>
-            <p class="section-desc">이미지를 업로드하면 크기를 자동 계산하거나, 원하는 크기에 맞춰 비율을 계산합니다</p>
+            <h2>📐 이미지 업로드 (필수)</h2>
+            <p class="section-desc">이미지를 업로드하면 형상을 분석하여 정밀 견적을 계산합니다</p>
         </div>
         <button type="button" onclick="resetRatio()" class="btn-section-reset">초기화</button>
-    </div>
-
-    <div class="skip-ratio-toggle">
-        <label class="checkbox-label">
-            <input type="checkbox" id="skip-ratio" onchange="toggleRatioMode()">
-            <span>비율 계산 없이 직접 입력</span>
-        </label>
-        <small class="skip-ratio-hint">체크하면 아래에서 가로/세로를 직접 입력합니다</small>
     </div>
 
     <div id="ratio-calc-section">
@@ -44,7 +36,7 @@
             </div>
             <div class="file-format-hint">
                 <p><strong>PNG(추천)</strong>: 투명 배경 제외, 실제 이미지만 계산</p>
-                <p><strong>JPG</strong>: 배경 포함 전체 크기로 계산</p>
+                <p><strong>JPG</strong>: 배경 자동 분리로 형상 인식 가능</p>
             </div>
             <div class="form-row">
                 <div class="form-group flex-2">
@@ -90,14 +82,14 @@
     </div>
 
     <form
-        hx-post="/api/calculate"
+        hx-post="/api/calculate-shape"
         hx-target="#result"
         hx-swap="innerHTML"
         hx-trigger="submit"
         class="calculator-form"
         id="calc-form"
     >
-        <input type="hidden" id="shape_file_path" name="file_path" value="" disabled>
+        <input type="hidden" id="shape_file_path" name="file_path" value="">
         <div class="form-row">
             <div class="form-group">
                 <label for="width">가로 (mm)</label>
@@ -146,7 +138,10 @@
             <small>이미지 분석 데이터를 기반으로 정밀 견적이 적용됩니다</small>
         </div>
 
-        <button type="submit" class="btn-calculate">계산하기</button>
+        <div id="image-required-hint" class="image-required-hint">
+            <span>이미지를 먼저 업로드하세요</span>
+        </div>
+        <button type="submit" class="btn-calculate" id="btn-calculate" disabled>계산하기</button>
     </form>
 
     <div id="result" class="result-area">
@@ -289,35 +284,34 @@ var ratioUsed = false;
 // 형상 분석 모드 여부
 window.shapeAnalysisAvailable = false;
 
-// 형상 기반 견적 모드로 전환
-function switchToShapeMode() {
-    var form = document.getElementById('calc-form');
-    var filePathInput = document.getElementById('shape_file_path');
+// 이미지 업로드 후 형상 모드 활성화
+function enableCalculateButton() {
+    var btn = document.getElementById('btn-calculate');
+    var hint = document.getElementById('image-required-hint');
     var badge = document.getElementById('shape-mode-badge');
+    var filePathInput = document.getElementById('shape_file_path');
+
+    btn.disabled = false;
+    hint.style.display = 'none';
+    badge.style.display = 'flex';
 
     if (window.ratioFilePath) {
-        // 폼을 shape-calculate API로 전환
-        form.setAttribute('hx-post', '/api/calculate-shape');
         filePathInput.value = window.ratioFilePath;
-        filePathInput.disabled = false;
-        badge.style.display = 'flex';
-        // htmx 재초기화
-        htmx.process(form);
     }
 }
 
-// 기존 직접 입력 모드로 복원
-function switchToDirectMode() {
-    var form = document.getElementById('calc-form');
-    var filePathInput = document.getElementById('shape_file_path');
+// 계산 버튼 비활성화 (이미지 초기화 시)
+function disableCalculateButton() {
+    var btn = document.getElementById('btn-calculate');
+    var hint = document.getElementById('image-required-hint');
     var badge = document.getElementById('shape-mode-badge');
+    var filePathInput = document.getElementById('shape_file_path');
 
-    form.setAttribute('hx-post', '/api/calculate');
-    filePathInput.value = '';
-    filePathInput.disabled = true;
+    btn.disabled = true;
+    hint.style.display = 'flex';
     badge.style.display = 'none';
+    filePathInput.value = '';
     window.shapeAnalysisAvailable = false;
-    htmx.process(form);
 }
 
 // 계산 결과가 나오면 주문 데이터 준비 (주문폼은 아직 안 보여줌)
@@ -332,6 +326,8 @@ document.body.addEventListener('htmx:afterSwap', function(event) {
     }
     if (event.detail.target.id === 'image-result') {
         ratioUsed = true;
+        // 이미지 업로드 완료 → 계산 버튼 활성화
+        enableCalculateButton();
         // 비율 계산에서 업로드한 파일 경로를 주문 폼에 세팅
         if (window.ratioFilePath) {
             document.getElementById('order_ratio_file').value = window.ratioFilePath;
@@ -391,40 +387,21 @@ function autoSubmitIfFileReady() {
     }
 }
 
-// 비율 계산 모드 토글
-function toggleRatioMode() {
-    var skipCheckbox = document.getElementById('skip-ratio');
-    var ratioSection = document.getElementById('ratio-calc-section');
-    var imageResult = document.getElementById('image-result');
-
-    if (skipCheckbox.checked) {
-        ratioSection.style.display = 'none';
-        imageResult.innerHTML = '';
-        ratioUsed = false;
-    } else {
-        ratioSection.style.display = 'block';
-    }
-    updateDesignFileRequired();
-}
-
 // 디자인 파일 필수/선택 업데이트
 function updateDesignFileRequired() {
     var label = document.getElementById('design_file_label');
     var input = document.getElementById('design_file');
     var hint = document.getElementById('design_file_hint');
-    var skipChecked = document.getElementById('skip-ratio').checked;
 
-    // required 속성 사용하지 않음 (브라우저 기본 검증이 제출을 차단하므로)
-    // 대신 커스텀 검증에서 안내 메시지 표시
     input.required = false;
 
-    if (skipChecked || !ratioUsed) {
+    if (!ratioUsed) {
         label.textContent = '디자인 파일 *';
-        hint.textContent = '비율 계산을 하지 않았으므로 디자인 파일을 첨부해 주세요';
+        hint.textContent = '이미지를 업로드하지 않았으므로 디자인 파일을 첨부해 주세요';
         window.fileRequired = true;
     } else {
         label.textContent = '디자인 파일 (선택)';
-        hint.textContent = '비율 계산 시 첨부한 파일이 있으므로 선택사항입니다';
+        hint.textContent = '이미지 업로드 시 첨부한 파일이 있으므로 선택사항입니다';
         window.fileRequired = false;
     }
 }
@@ -443,15 +420,13 @@ function removeAutoAttached() {
 function resetRatio() {
     var form = document.querySelector('#ratio-calc-section .image-form');
     if (form) form.reset();
-    document.getElementById('skip-ratio').checked = false;
     document.getElementById('auto-size').checked = false;
     document.getElementById('image-result').innerHTML = '';
     window.ratioFilePath = '';
     toggleAutoSize();
     ratioUsed = false;
     unlockSizeFields();
-    toggleRatioMode();
-    switchToDirectMode();
+    disableCalculateButton();
 }
 
 // 가로/세로 입력 잠금 해제
@@ -468,10 +443,13 @@ function unlockSizeFields() {
 // 단가 계산 섹션 초기화
 function resetCalc() {
     unlockSizeFields();
-    switchToDirectMode();
     document.querySelector('.calculator-form').reset();
     document.getElementById('result').innerHTML = '<p class="placeholder">위 정보를 입력하시면 자동으로 계산됩니다.</p>';
     document.getElementById('order-section').style.display = 'none';
+    // 이미지가 없으면 버튼 비활성화 유지
+    if (!window.ratioFilePath) {
+        disableCalculateButton();
+    }
 }
 
 // 주문 금액 업데이트
@@ -544,7 +522,7 @@ document.querySelector('.order-form').addEventListener('htmx:configRequest', fun
     else if (phone.replace(/-/g, '').length < 10) errors.push('연락처를 정확히 입력해 주세요.');
     if (!email) errors.push('이메일을 입력해 주세요.');
 
-    // 디자인 파일 검증 (비율 계산 미사용 시)
+    // 디자인 파일 검증 (이미지 미업로드 시)
     var fileInput = document.getElementById('design_file');
     var ratioFile = document.getElementById('order_ratio_file').value;
     if (window.fileRequired && !fileInput.files.length && !ratioFile) {
@@ -957,38 +935,19 @@ document.querySelector('.order-form').addEventListener('htmx:afterRequest', func
     appearance: auto;
 }
 
-/* 비율 계산 건너뛰기 토글 */
-.skip-ratio-toggle {
-    margin-bottom: 20px;
-    padding: 14px 16px;
-    background: #f5f5f5;
-    border-radius: 10px;
-    border: 1px solid #e0e0e0;
-}
-
-.checkbox-label {
+/* 이미지 필수 안내 */
+.image-required-hint {
     display: flex;
     align-items: center;
-    gap: 10px;
-    cursor: pointer;
-    font-size: 15px;
+    justify-content: center;
+    padding: 10px 16px;
+    background: #fff3e0;
+    border: 1.5px solid #ffb74d;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    font-size: 14px;
     font-weight: 600;
-    color: #333;
-}
-
-.checkbox-label input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-    accent-color: #F4B900;
-}
-
-.skip-ratio-hint {
-    display: block;
-    margin-top: 8px;
-    margin-left: 28px;
-    font-size: 13px;
-    color: #888;
+    color: #e65100;
 }
 
 /* 작업틀 옵션 체크박스 */
