@@ -685,6 +685,13 @@ function submitManualMask() {
         var resultEl = document.getElementById('image-result');
         if (resultEl) {
             resultEl.innerHTML = html;
+            // innerHTML로 삽입된 <script>는 자동 실행되지 않으므로 수동 실행
+            var scripts = resultEl.querySelectorAll('script');
+            scripts.forEach(function(oldScript) {
+                var newScript = document.createElement('script');
+                newScript.textContent = oldScript.textContent;
+                oldScript.parentNode.replaceChild(newScript, oldScript);
+            });
         }
     })
     .catch(function(err) {
