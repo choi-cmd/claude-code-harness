@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sublione-v3';
+const CACHE_NAME = 'sublione-v4';
 const ASSETS = [
   '/',
   '/static/css/style.css',
