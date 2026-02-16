@@ -71,8 +71,32 @@ def analyze_image(image_path: str | Path) -> ShapeMetrics | None:
     if img is None:
         return None
 
-    # 마스크 생성
-    mask = _create_mask(img)
+    h, w = img.shape[:2]
+    has_alpha = len(img.shape) == 3 and img.shape[2] == 4
+
+    if has_alpha:
+        # PNG: 알파 채널로 정확한 마스크 생성
+        mask = _create_mask(img)
+    else:
+        # JPG/BMP: 모서리 샘플링만 시도 (Otsu 폴백 사용 안 함)
+        # 모서리 샘플링 실패 = 뚜렷한 배경 없음 = 이미지 전체가 사각형
+        if len(img.shape) == 3:
+            mask = _create_mask_by_corner_sampling(img)
+        else:
+            mask = None
+
+        if mask is None:
+            # 배경 분리 불가 → 사각형으로 처리
+            return ShapeMetrics(
+                contour_area_px=float(w * h),
+                contour_perimeter_px=float(2 * (w + h)),
+                bounding_box_px=(w, h),
+                vertex_count=4,
+                circularity=round(math.pi / 4, 4),
+                fill_ratio=1.0,
+                complexity_score=0.0,
+            )
+
     if mask is None:
         return None
 
@@ -81,21 +105,7 @@ def analyze_image(image_path: str | Path) -> ShapeMetrics | None:
     if not contours:
         return None
 
-    metrics = _analyze_contours(contours)
-
-    # JPG 등 불투명 이미지에서 컨투어가 이미지 대부분을 덮으면
-    # 배경 분리가 실패한 것 → 단순 사각형으로 강제 처리
-    has_alpha = len(img.shape) == 3 and img.shape[2] == 4
-    if metrics and not has_alpha:
-        h, w = img.shape[:2]
-        total_area = w * h
-        if metrics.contour_area_px / total_area > 0.8:
-            metrics.fill_ratio = 1.0
-            metrics.vertex_count = 4
-            metrics.circularity = round(math.pi / 4, 4)
-            metrics.complexity_score = 0.0
-
-    return metrics
+    return _analyze_contours(contours)
 
 
 def _analyze_contours(contours: list) -> ShapeMetrics | None:
