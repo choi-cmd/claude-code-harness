@@ -107,14 +107,15 @@ def _analyze_contours(contours: list) -> ShapeMetrics | None:
     # 채움률
     fill_ratio = area / bbox_area if bbox_area > 0 else 0
 
-    # 채움률이 95% 이상이면 사실상 사각형 (배경 분리 실패)
-    # → 노이즈로 인한 복잡도 과대평가 방지
-    if fill_ratio > 0.95:
-        vertex_count = 4
-        circularity = math.pi / 4  # 정사각형 원형도 ≈ 0.785
-
     # 예각 비율 계산 (레이저 재단 시 감속 필요 구간)
     acute_ratio = _calculate_acute_ratio(approx)
+
+    # 채움률이 95% 이상이면 사실상 사각형 (배경 분리 실패)
+    # → 노이즈로 인한 복잡도 과대평가 방지: 사각형 값으로 강제 보정
+    if fill_ratio > 0.95:
+        vertex_count = 4
+        circularity = math.pi / 4
+        acute_ratio = 0.0  # 사각형은 모두 직각, 예각 없음
 
     # 복잡도 점수 계산 (레이저 재단 기준)
     complexity = _calculate_complexity(vertex_count, perimeter, area, acute_ratio)
