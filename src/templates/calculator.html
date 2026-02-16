@@ -102,6 +102,7 @@
         id="calc-form"
     >
         <input type="hidden" id="shape_file_path" name="file_path" value="">
+        <input type="hidden" id="shape_polygon" name="polygon" value="">
         <div class="form-row">
             <div class="form-group">
                 <label for="width">가로 (mm)</label>
@@ -302,6 +303,7 @@ function enableCalculateButton() {
     var hint = document.getElementById('image-required-hint');
     var badge = document.getElementById('shape-mode-badge');
     var filePathInput = document.getElementById('shape_file_path');
+    var polygonInput = document.getElementById('shape_polygon');
 
     btn.disabled = false;
     hint.style.display = 'none';
@@ -310,6 +312,8 @@ function enableCalculateButton() {
     if (window.ratioFilePath) {
         filePathInput.value = window.ratioFilePath;
     }
+    // 수동 선택 폴리곤이 있으면 함께 전달
+    polygonInput.value = window.manualPolygon || '';
 }
 
 // 계산 버튼 비활성화 (이미지 초기화 시)

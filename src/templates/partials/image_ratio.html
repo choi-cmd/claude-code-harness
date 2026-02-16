@@ -6,7 +6,11 @@
 <div class="ratio-result-card ratio-error">
     <h3>❌ 제작 불가 크기</h3>
 
-    {% if file_path and not file_path.endswith(('.ai', '.psd')) %}
+    {% if preview_path %}
+    <div class="result-preview-wrap">
+        <img src="{{ preview_path }}" alt="배경 제거 미리보기">
+    </div>
+    {% elif file_path and not file_path.endswith(('.ai', '.psd')) %}
     <div class="result-preview-wrap">
         <img src="{{ file_path }}" alt="업로드 이미지">
     </div>
@@ -39,7 +43,11 @@
 <div class="ratio-result-card">
     <h3>✅ 비율 계산 완료</h3>
 
-    {% if file_path and not file_path.endswith(('.ai', '.psd')) %}
+    {% if preview_path %}
+    <div class="result-preview-wrap">
+        <img src="{{ preview_path }}" alt="배경 제거 미리보기">
+    </div>
+    {% elif file_path and not file_path.endswith(('.ai', '.psd')) %}
     <div class="result-preview-wrap">
         <img src="{{ file_path }}" alt="업로드 이미지">
     </div>
@@ -50,7 +58,12 @@
     </div>
     {% endif %}
 
-    {% if is_transparent %}
+    {% if is_manual_mask %}
+    <div class="info-badge">
+        <span class="badge-icon">✏️</span>
+        <span>직접 선택한 영역으로 계산되었습니다</span>
+    </div>
+    {% elif is_transparent %}
     <div class="info-badge">
         <span class="badge-icon">🎯</span>
         <span>투명 배경 제외한 실제 객체 크기로 계산되었습니다</span>
@@ -114,6 +127,38 @@
     </div>
     {% endif %}
 
+    <!-- 직접 영역 선택 버튼 (항상 표시, .ai/.psd 제외) -->
+    {% if file_path and not file_path.endswith(('.ai', '.psd')) %}
+    <div id="manual-select-trigger" class="manual-select-trigger">
+        <button type="button" onclick="showManualSelector()" class="btn-manual-select">
+            ✏️ 직접 영역 선택하기
+        </button>
+    </div>
+
+    <!-- 캔버스 UI (숨김) -->
+    <div id="manual-canvas-container" class="manual-canvas-container" style="display:none;">
+        <h4 class="canvas-title">객체 윤곽선을 그려주세요</h4>
+        <div class="canvas-mode-tabs">
+            <button type="button" class="mode-tab active" data-mode="polygon" onclick="switchMode(this, 'polygon')">다각형</button>
+            <button type="button" class="mode-tab" data-mode="freehand" onclick="switchMode(this, 'freehand')">프리핸드</button>
+        </div>
+        <!-- 되돌리기/초기화: 캔버스 위 -->
+        <div class="canvas-controls-top">
+            <button type="button" onclick="polygonDrawer.undo()" class="btn-canvas btn-canvas-sm">↩ 되돌리기</button>
+            <button type="button" onclick="polygonDrawer.reset()" class="btn-canvas btn-canvas-sm">🗑 초기화</button>
+        </div>
+        <div class="canvas-wrap">
+            <canvas id="polygon-canvas"></canvas>
+        </div>
+        <p class="canvas-help" id="canvas-help-text">클릭으로 꼭짓점을 추가하세요. 첫 점 근처를 클릭하면 자동으로 닫힙니다.</p>
+        <!-- 완료/취소: 캔버스 아래 -->
+        <div class="canvas-controls">
+            <button type="button" onclick="submitManualMask()" class="btn-canvas btn-canvas-primary">✅ 완료</button>
+            <button type="button" onclick="hideManualSelector()" class="btn-canvas btn-canvas-cancel">취소</button>
+        </div>
+    </div>
+    {% endif %}
+
     <p class="hint">이 크기가 자동으로 단가 계산에 적용됩니다</p>
 
     <!-- 숨겨진 input으로 계산 폼에 전달 -->
@@ -130,6 +175,12 @@
         window.ratioFilePath = '{{ file_path }}';
         // 형상 분석 여부 저장
         window.shapeAnalysisAvailable = {{ 'true' if shape_analysis else 'false' }};
+        // 수동 마스크 폴리곤 저장 (있으면)
+        {% if is_manual_mask %}
+        window.manualPolygon = '{{ manual_polygon|default("") }}';
+        {% else %}
+        window.manualPolygon = '';
+        {% endif %}
         // 주문 폼 hidden input에 직접 세팅
         var ratioFileInput = document.getElementById('order_ratio_file');
         if (ratioFileInput) ratioFileInput.value = '{{ file_path }}';
@@ -391,4 +442,254 @@
     font-weight: 600;
     color: #666;
 }
+
+/* 직접 영역 선택 */
+.manual-select-trigger {
+    margin-top: 12px;
+    text-align: center;
+}
+
+.btn-manual-select {
+    display: inline-block;
+    padding: 10px 20px;
+    background: #fff;
+    border: 1.5px dashed #F4B900;
+    border-radius: 8px;
+    color: #856404;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+}
+
+.btn-manual-select:hover {
+    background: #fffdf5;
+    border-style: solid;
+}
+
+/* 캔버스 컨테이너 */
+.manual-canvas-container {
+    margin-top: 12px;
+    padding: 16px;
+    background: #f8f9fa;
+    border: 1.5px solid #dee2e6;
+    border-radius: 10px;
+}
+
+.canvas-title {
+    font-size: 14px;
+    color: #495057;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.canvas-mode-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 10px;
+    background: #e9ecef;
+    border-radius: 6px;
+    padding: 3px;
+}
+
+.mode-tab {
+    flex: 1;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    font-size: 13px;
+    font-weight: 500;
+    color: #6c757d;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.mode-tab.active {
+    background: #fff;
+    color: #333;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.canvas-wrap {
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #fff;
+    text-align: center;
+}
+
+.canvas-wrap canvas {
+    display: block;
+    max-width: 100%;
+    cursor: crosshair;
+    touch-action: none;
+}
+
+.canvas-help {
+    font-size: 12px;
+    color: #888;
+    text-align: center;
+    margin: 8px 0;
+}
+
+.canvas-controls-top {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+    justify-content: flex-end;
+}
+
+.btn-canvas-sm {
+    padding: 4px 10px !important;
+    font-size: 12px !important;
+    flex: none !important;
+    min-width: auto !important;
+}
+
+.canvas-controls {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.btn-canvas {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 6px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    background: #fff;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+
+.btn-canvas:hover {
+    background: #f8f9fa;
+}
+
+.btn-canvas-primary {
+    background: #F4B900;
+    border-color: #F4B900;
+    color: #fff;
+    font-weight: 600;
+}
+
+.btn-canvas-primary:hover {
+    background: #d9a400;
+}
+
+.btn-canvas-cancel {
+    color: #dc3545;
+    border-color: #dc3545;
+}
+
+.btn-canvas-cancel:hover {
+    background: #fff5f5;
+}
 </style>
+
+<script src="/static/js/polygon-drawer.js"></script>
+<script>
+var polygonDrawer = null;
+
+function showManualSelector() {
+    var trigger = document.getElementById('manual-select-trigger');
+    var container = document.getElementById('manual-canvas-container');
+    if (!trigger || !container) return;
+
+    trigger.style.display = 'none';
+    container.style.display = 'block';
+
+    // 캔버스에는 항상 원본 이미지 사용 (배경 있는 상태에서 영역 선택)
+    var imgSrc = '{{ file_path }}';
+    var canvas = document.getElementById('polygon-canvas');
+
+    if (polygonDrawer) polygonDrawer.destroy();
+    polygonDrawer = new PolygonDrawer(canvas, imgSrc, null);
+}
+
+function hideManualSelector() {
+    var trigger = document.getElementById('manual-select-trigger');
+    var container = document.getElementById('manual-canvas-container');
+    if (trigger) trigger.style.display = '';
+    if (container) container.style.display = 'none';
+
+    if (polygonDrawer) {
+        polygonDrawer.destroy();
+        polygonDrawer = null;
+    }
+}
+
+function switchMode(btn, mode) {
+    // 탭 활성화
+    var tabs = btn.parentElement.querySelectorAll('.mode-tab');
+    tabs.forEach(function(t) { t.classList.remove('active'); });
+    btn.classList.add('active');
+
+    // 도움말 텍스트 변경
+    var helpEl = document.getElementById('canvas-help-text');
+    if (mode === 'polygon') {
+        helpEl.textContent = '클릭으로 꼭짓점을 추가하세요. 첫 점 근처를 클릭하면 자동으로 닫힙니다.';
+    } else {
+        helpEl.textContent = '드래그로 그리세요. 여러 번 나눠 그릴 수 있습니다. 완료 버튼을 누르면 자동으로 닫힙니다.';
+    }
+
+    if (polygonDrawer) polygonDrawer.setMode(mode);
+}
+
+function submitManualMask() {
+    if (!polygonDrawer) return;
+
+    // 프리핸드 모드: 아직 닫히지 않았으면 자동으로 닫기
+    if (polygonDrawer.mode === 'freehand' && !polygonDrawer.isClosed) {
+        polygonDrawer.close();
+    }
+
+    var points = polygonDrawer.getImagePoints();
+    if (!points) {
+        alert(polygonDrawer.mode === 'polygon'
+            ? '영역을 완성해주세요. 첫 점(빨간 점) 근처를 클릭하면 닫힙니다.'
+            : '영역을 그려주세요. 마우스/손가락으로 드래그하여 그릴 수 있습니다.');
+        return;
+    }
+
+    // 현재 target 크기 가져오기
+    var targetW = parseFloat(document.getElementById('width').value) || 100;
+    var targetH = parseFloat(document.getElementById('height').value) || 100;
+
+    var polygonJson = JSON.stringify(points);
+
+    // 폴리곤 데이터를 전역에 저장 (단가 계산에서 사용)
+    window.manualPolygon = polygonJson;
+
+    var formData = new FormData();
+    formData.append('file_path', '{{ file_path }}');
+    formData.append('polygon', polygonJson);
+    formData.append('target_width', targetW);
+    formData.append('target_height', targetH);
+
+    // 로딩 표시
+    var container = document.getElementById('manual-canvas-container');
+    container.innerHTML = '<div style="text-align:center;padding:20px;"><div class="spinner"></div><p style="margin-top:8px;color:#666;font-size:13px;">영역 분석 중...</p></div>';
+
+    fetch('/api/image/manual-mask', {
+        method: 'POST',
+        body: formData,
+    })
+    .then(function(res) { return res.text(); })
+    .then(function(html) {
+        var resultEl = document.getElementById('image-result');
+        if (resultEl) {
+            resultEl.innerHTML = html;
+        }
+    })
+    .catch(function(err) {
+        alert('오류가 발생했습니다: ' + err.message);
+        hideManualSelector();
+    });
+}
+</script>

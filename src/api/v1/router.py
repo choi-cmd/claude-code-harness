@@ -8,7 +8,7 @@ from fastapi.templating import Jinja2Templates
 
 from src.api.deps import CalculatorServiceDep
 from src.domain.calculator.schemas import CalculateRequest
-from src.domain.calculator.shape_analyzer import analyze_image, convert_to_mm
+from src.domain.calculator.shape_analyzer import analyze_image, analyze_with_custom_mask, convert_to_mm
 from src.domain.calculator.shape_pricing import ShapePricingService
 
 router = APIRouter()
@@ -68,6 +68,7 @@ async def calculate_shape(
     width: float = Form(...),
     height: float = Form(...),
     quantity: int = Form(...),
+    polygon: str = Form(""),
 ) -> HTMLResponse:
     """
     형상 기반 견적 API (HTMX 호출) - 이미지 분석 모드
@@ -77,19 +78,27 @@ async def calculate_shape(
         width: 바운딩 박스 가로 (mm)
         height: 바운딩 박스 세로 (mm)
         quantity: 주문 수량
+        polygon: 수동 선택 폴리곤 JSON (빈 문자열이면 자동 분석)
 
     Returns:
         형상 기반 견적 결과 HTML
     """
     try:
         # 파일명 추출 후 uploads 디렉토리에서 찾기
-        filename = Path(file_path).name
+        from urllib.parse import unquote
+        decoded_path = unquote(file_path)
+        filename = Path(decoded_path).name
         actual_path = UPLOAD_DIR / filename
         if not actual_path.exists():
             raise HTTPException(status_code=400, detail="이미지 파일을 찾을 수 없습니다")
 
-        # OpenCV 분석
-        metrics = analyze_image(actual_path)
+        # 수동 선택 폴리곤이 있으면 커스텀 마스크 분석, 없으면 자동 분석
+        import json
+        if polygon and polygon.strip():
+            polygon_points = json.loads(polygon)
+            metrics = analyze_with_custom_mask(actual_path, polygon_points)
+        else:
+            metrics = analyze_image(actual_path)
         if metrics is None:
             raise HTTPException(status_code=400, detail="이미지 분석에 실패했습니다")
 
