@@ -22,7 +22,10 @@ UPLOAD_DIR = PROJECT_ROOT / "src" / "static" / "uploads"
 @router.get("/", response_class=HTMLResponse)
 async def index(request: Request) -> HTMLResponse:
     """메인 페이지"""
-    return templates.TemplateResponse("calculator.html", {"request": request})
+    response = templates.TemplateResponse("calculator.html", {"request": request})
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    return response
 
 
 @router.post("/api/calculate", response_class=HTMLResponse)
