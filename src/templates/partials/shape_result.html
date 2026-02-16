@@ -1,0 +1,247 @@
+<div class="result-card">
+    <div class="result-header">
+        <h2>🔬 AI 형상 분석 견적</h2>
+        {% if quote.is_sample %}
+        <span class="badge badge-warning">샘플 제작</span>
+        {% else %}
+        <span class="badge badge-success">정규 제작</span>
+        {% endif %}
+    </div>
+
+    <!-- 형상 분석 정보 -->
+    <div class="result-section">
+        <h3>📐 형상 분석 결과</h3>
+        <div class="shape-metrics">
+            <div class="metric-row">
+                <span class="metric-label">실제 면적</span>
+                <span class="metric-value">{{ "{:,.1f}".format(quote.area_mm2) }} mm²</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">아웃라인 길이</span>
+                <span class="metric-value">{{ "{:,.1f}".format(quote.perimeter_mm) }} mm</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">바운딩 박스</span>
+                <span class="metric-value">{{ quote.bbox_width_mm }}mm × {{ quote.bbox_height_mm }}mm</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">채움률</span>
+                <span class="metric-value">{{ "{:.1f}".format(quote.fill_ratio * 100) }}%</span>
+            </div>
+        </div>
+
+        <!-- 복잡도 게이지 -->
+        <div class="complexity-gauge">
+            <div class="gauge-header">
+                <span class="gauge-label">복잡도</span>
+                <span class="gauge-grade grade-{{ quote.complexity_label }}">{{ quote.complexity_label }}</span>
+            </div>
+            <div class="gauge-bar">
+                <div class="gauge-fill" style="width: {{ (quote.complexity_score * 100)|int }}%"></div>
+            </div>
+            <div class="gauge-scale">
+                <span>낮음</span>
+                <span>보통</span>
+                <span>높음</span>
+                <span>매우높음</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 가격 분해 -->
+    <div class="result-section">
+        <h3>💵 가격 상세</h3>
+        <table class="result-table">
+            <tr>
+                <td>재료비 <small>(면적 기반)</small></td>
+                <td>{{ "{:,.1f}".format(quote.material_cost) }}원</td>
+            </tr>
+            <tr>
+                <td>가공비 <small>(아웃라인 기반)</small></td>
+                <td>{{ "{:,.1f}".format(quote.processing_cost) }}원</td>
+            </tr>
+            <tr class="multiplier-row">
+                <td>복잡도 할증 <small>({{ quote.complexity_label }})</small></td>
+                <td>×{{ quote.complexity_multiplier }}</td>
+            </tr>
+            <tr class="multiplier-row">
+                <td>효율 할증 <small>({{ quote.efficiency_label }})</small></td>
+                <td>×{{ quote.efficiency_multiplier }}</td>
+            </tr>
+            <tr class="divider-row">
+                <td>개당 단가</td>
+                <td><strong>{{ "{:,}".format(quote.unit_price) }}원</strong></td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- 주문 정보 -->
+    <div class="result-section">
+        <h3>📦 주문 정보</h3>
+        <table class="result-table">
+            <tr>
+                <td>최소 수량 (1판)</td>
+                <td><strong class="highlight">{{ quote.min_quantity }}개</strong></td>
+            </tr>
+            <tr>
+                <td>주문 수량</td>
+                <td><strong>{{ quote.quantity }}개</strong></td>
+            </tr>
+            <tr>
+                <td>소계</td>
+                <td>{{ "{:,}".format(quote.subtotal) }}원</td>
+            </tr>
+            {% if quote.sample_fee > 0 %}
+            <tr class="warning-row">
+                <td>샘플비</td>
+                <td><strong class="text-warning">+{{ "{:,}".format(quote.sample_fee) }}원</strong></td>
+            </tr>
+            {% endif %}
+            <tr class="total-row">
+                <td>총 금액 (VAT별도)</td>
+                <td><strong>{{ "{:,}".format(quote.total_price) }}원</strong></td>
+            </tr>
+            <tr class="total-row vat-row">
+                <td>총 금액 (VAT포함)</td>
+                <td><strong class="text-vat-total">{{ "{:,}".format((quote.total_price * 1.1)|int) }}원</strong></td>
+            </tr>
+        </table>
+    </div>
+
+    <script>window.calcPrice = {{ quote.total_price }};</script>
+
+    {% if quote.is_sample %}
+    <div class="alert alert-warning">
+        ⚠️ 최소 수량({{ quote.min_quantity }}개)보다 적게 주문하셔서 샘플비 10,000원이 추가되었습니다.
+    </div>
+    {% else %}
+    <div class="alert alert-success">
+        ✅ 최소 수량을 충족하여 정규 제작 가격이 적용되었습니다.
+    </div>
+    {% endif %}
+
+    <button type="button" class="btn-go-order" onclick="goToOrderForm()">주문 신청하기 →</button>
+</div>
+
+<style>
+.shape-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.metric-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.metric-label {
+    color: #666;
+    font-size: 14px;
+}
+
+.metric-value {
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+/* 복잡도 게이지 */
+.complexity-gauge {
+    padding: 14px 16px;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+}
+
+.gauge-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.gauge-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.gauge-grade {
+    font-size: 13px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 12px;
+}
+
+.gauge-grade.grade-낮음 {
+    background: #d4edda;
+    color: #155724;
+}
+
+.gauge-grade.grade-보통 {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.gauge-grade.grade-높음 {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.gauge-grade.grade-매우높음 {
+    background: #c0392b;
+    color: #fff;
+}
+
+.gauge-bar {
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+
+.gauge-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #27ae60 0%, #f39c12 50%, #e74c3c 100%);
+    transition: width 0.6s ease;
+}
+
+.gauge-scale {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #999;
+}
+
+/* 가격 테이블 추가 스타일 */
+.multiplier-row td {
+    font-size: 13px;
+    color: #888;
+}
+
+.multiplier-row td:last-child {
+    font-weight: 600;
+    color: #666;
+}
+
+.divider-row {
+    border-top: 2px solid #F4B900 !important;
+}
+
+.divider-row td {
+    padding-top: 12px !important;
+    font-size: 16px;
+}
+
+.divider-row td:last-child strong {
+    color: #F4B900;
+    font-size: 18px;
+}
+</style>

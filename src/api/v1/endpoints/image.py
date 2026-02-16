@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Optional
 
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse
@@ -11,6 +11,8 @@ from PIL import Image
 
 from src.domain.order.service import OrderService
 from src.domain.order.schemas import ImageRatioRequest
+from src.domain.calculator.shape_analyzer import analyze_image, convert_to_mm
+from src.domain.calculator.shape_pricing import ShapePricingService
 
 router = APIRouter(prefix="/api/image", tags=["image"])
 templates = Jinja2Templates(directory="src/templates")
@@ -27,7 +29,7 @@ async def upload_image(
     target_dimension: str = Form("auto"),
 ) -> HTMLResponse:
     """
-    이미지 업로드 및 비율 계산
+    이미지 업로드 및 비율 계산 + OpenCV 형상 분석
 
     Args:
         file: 업로드 이미지
@@ -101,6 +103,40 @@ async def upload_image(
             )
             result = service.calculate_image_ratio(ratio_request)
 
+        # OpenCV 형상 분석 (PNG/JPG만)
+        shape_analysis = None
+        if ext in [".jpg", ".jpeg", ".png", ".bmp"]:
+            metrics = analyze_image(str(temp_path))
+            if metrics is not None:
+                metrics = convert_to_mm(
+                    metrics,
+                    float(result.target_width),
+                    float(result.target_height),
+                )
+                pricing = ShapePricingService()
+                price_info = pricing.calculate_shape_price(metrics)
+                complexity_mult, complexity_label = pricing.complexity_multiplier(
+                    metrics.complexity_score
+                )
+                shape_analysis = {
+                    "area_mm2": metrics.area_mm2,
+                    "perimeter_mm": metrics.perimeter_mm,
+                    "fill_ratio": metrics.fill_ratio,
+                    "fill_pct": round(metrics.fill_ratio * 100, 1),
+                    "complexity_score": metrics.complexity_score,
+                    "complexity_label": complexity_label,
+                    "complexity_pct": round(metrics.complexity_score * 100, 1),
+                    "vertex_count": metrics.vertex_count,
+                    "circularity": metrics.circularity,
+                    "unit_price": price_info["unit_price"],
+                    "material_cost": price_info["material_cost"],
+                    "processing_cost": price_info["processing_cost"],
+                    "complexity_multiplier": price_info["complexity_multiplier"],
+                    "efficiency_multiplier": price_info["efficiency_multiplier"],
+                    "efficiency_label": price_info["efficiency_label"],
+                    "margin": price_info["margin"],
+                }
+
         # 템플릿 렌더링
         return templates.TemplateResponse(
             "partials/image_ratio.html",
@@ -110,6 +146,7 @@ async def upload_image(
                 "filename": file.filename,
                 "is_transparent": is_transparent,
                 "file_path": f"/static/uploads/temp_{file.filename}",
+                "shape_analysis": shape_analysis,
             },
         )
 

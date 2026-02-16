@@ -95,7 +95,9 @@
         hx-swap="innerHTML"
         hx-trigger="submit"
         class="calculator-form"
+        id="calc-form"
     >
+        <input type="hidden" id="shape_file_path" name="file_path" value="" disabled>
         <div class="form-row">
             <div class="form-group">
                 <label for="width">가로 (mm)</label>
@@ -136,6 +138,12 @@
                     placeholder="예: 50"
                 >
             </div>
+        </div>
+
+        <!-- 형상 분석 모드 표시 -->
+        <div id="shape-mode-badge" class="shape-mode-badge" style="display:none;">
+            <span>🔬 형상 기반 견적 모드</span>
+            <small>이미지 분석 데이터를 기반으로 정밀 견적이 적용됩니다</small>
         </div>
 
         <button type="submit" class="btn-calculate">계산하기</button>
@@ -266,6 +274,7 @@
                 ></textarea>
             </div>
 
+            <div id="order-error" class="order-error" style="display:none;"></div>
             <button type="submit" class="btn-order">주문 신청하기</button>
         </form>
 
@@ -277,6 +286,39 @@
 <script>
 // 비율 계산 사용 여부 추적
 var ratioUsed = false;
+// 형상 분석 모드 여부
+window.shapeAnalysisAvailable = false;
+
+// 형상 기반 견적 모드로 전환
+function switchToShapeMode() {
+    var form = document.getElementById('calc-form');
+    var filePathInput = document.getElementById('shape_file_path');
+    var badge = document.getElementById('shape-mode-badge');
+
+    if (window.ratioFilePath) {
+        // 폼을 shape-calculate API로 전환
+        form.setAttribute('hx-post', '/api/calculate-shape');
+        filePathInput.value = window.ratioFilePath;
+        filePathInput.disabled = false;
+        badge.style.display = 'flex';
+        // htmx 재초기화
+        htmx.process(form);
+    }
+}
+
+// 기존 직접 입력 모드로 복원
+function switchToDirectMode() {
+    var form = document.getElementById('calc-form');
+    var filePathInput = document.getElementById('shape_file_path');
+    var badge = document.getElementById('shape-mode-badge');
+
+    form.setAttribute('hx-post', '/api/calculate');
+    filePathInput.value = '';
+    filePathInput.disabled = true;
+    badge.style.display = 'none';
+    window.shapeAnalysisAvailable = false;
+    htmx.process(form);
+}
 
 // 계산 결과가 나오면 주문 데이터 준비 (주문폼은 아직 안 보여줌)
 document.body.addEventListener('htmx:afterSwap', function(event) {
@@ -372,14 +414,18 @@ function updateDesignFileRequired() {
     var hint = document.getElementById('design_file_hint');
     var skipChecked = document.getElementById('skip-ratio').checked;
 
+    // required 속성 사용하지 않음 (브라우저 기본 검증이 제출을 차단하므로)
+    // 대신 커스텀 검증에서 안내 메시지 표시
+    input.required = false;
+
     if (skipChecked || !ratioUsed) {
         label.textContent = '디자인 파일 *';
-        input.required = true;
         hint.textContent = '비율 계산을 하지 않았으므로 디자인 파일을 첨부해 주세요';
+        window.fileRequired = true;
     } else {
         label.textContent = '디자인 파일 (선택)';
-        input.required = false;
         hint.textContent = '비율 계산 시 첨부한 파일이 있으므로 선택사항입니다';
+        window.fileRequired = false;
     }
 }
 
@@ -405,6 +451,7 @@ function resetRatio() {
     ratioUsed = false;
     unlockSizeFields();
     toggleRatioMode();
+    switchToDirectMode();
 }
 
 // 가로/세로 입력 잠금 해제
@@ -421,6 +468,7 @@ function unlockSizeFields() {
 // 단가 계산 섹션 초기화
 function resetCalc() {
     unlockSizeFields();
+    switchToDirectMode();
     document.querySelector('.calculator-form').reset();
     document.getElementById('result').innerHTML = '<p class="placeholder">위 정보를 입력하시면 자동으로 계산됩니다.</p>';
     document.getElementById('order-section').style.display = 'none';
@@ -474,9 +522,65 @@ function backToCalculator() {
 function resetOrder() {
     document.querySelector('.order-form').reset();
     document.getElementById('order-result').innerHTML = '';
+    document.getElementById('order-error').style.display = 'none';
     updateDesignFileRequired();
     updateOrderTotal();
 }
+
+// 주문 폼 커스텀 유효성 검사
+document.querySelector('.order-form').addEventListener('htmx:configRequest', function(event) {
+    var errorDiv = document.getElementById('order-error');
+    errorDiv.style.display = 'none';
+
+    var errors = [];
+
+    // 필수 입력 검증
+    var name = document.getElementById('customer_name').value.trim();
+    var phone = document.getElementById('customer_phone').value.trim();
+    var email = document.getElementById('customer_email').value.trim();
+
+    if (!name) errors.push('이름을 입력해 주세요.');
+    if (!phone) errors.push('연락처를 입력해 주세요.');
+    else if (phone.replace(/-/g, '').length < 10) errors.push('연락처를 정확히 입력해 주세요.');
+    if (!email) errors.push('이메일을 입력해 주세요.');
+
+    // 디자인 파일 검증 (비율 계산 미사용 시)
+    var fileInput = document.getElementById('design_file');
+    var ratioFile = document.getElementById('order_ratio_file').value;
+    if (window.fileRequired && !fileInput.files.length && !ratioFile) {
+        errors.push('디자인 파일을 첨부해 주세요.');
+    }
+
+    if (errors.length > 0) {
+        event.preventDefault();
+        errorDiv.innerHTML = errors.join('<br>');
+        errorDiv.style.display = 'block';
+        errorDiv.scrollIntoView({behavior: 'smooth', block: 'center'});
+        return;
+    }
+});
+
+// HTMX 에러 응답 처리
+document.body.addEventListener('htmx:responseError', function(event) {
+    if (event.detail.target && event.detail.target.id === 'order-result') {
+        var errorDiv = document.getElementById('order-error');
+        errorDiv.innerHTML = '주문 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
+        errorDiv.style.display = 'block';
+        errorDiv.scrollIntoView({behavior: 'smooth', block: 'center'});
+    }
+});
+
+// 제출 중 버튼 상태 변경
+document.querySelector('.order-form').addEventListener('htmx:beforeRequest', function() {
+    var btn = document.querySelector('.btn-order');
+    btn.disabled = true;
+    btn.textContent = '주문 처리 중...';
+});
+document.querySelector('.order-form').addEventListener('htmx:afterRequest', function() {
+    var btn = document.querySelector('.btn-order');
+    btn.disabled = false;
+    btn.textContent = '주문 신청하기';
+});
 </script>
 
 <style>
@@ -599,6 +703,17 @@ function resetOrder() {
     color: #666;
 }
 
+.order-error {
+    background: #fff3f3;
+    border: 1px solid #e74c3c;
+    color: #c0392b;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.8;
+    margin-bottom: 12px;
+}
+
 .btn-order {
     width: 100%;
     padding: 16px;
@@ -611,6 +726,13 @@ function resetOrder() {
     cursor: pointer;
     transition: all 0.2s;
     margin-top: 8px;
+}
+
+.btn-order:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
 }
 
 .btn-order:hover {
@@ -915,6 +1037,29 @@ function resetOrder() {
 .option-text small {
     font-size: 12px;
     color: #888;
+}
+
+/* 형상 분석 모드 뱃지 */
+.shape-mode-badge {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 16px;
+    background: #f0f7ff;
+    border: 1.5px solid #4a90d9;
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+.shape-mode-badge span {
+    font-size: 14px;
+    font-weight: 600;
+    color: #2c5282;
+}
+
+.shape-mode-badge small {
+    font-size: 12px;
+    color: #4a6fa5;
 }
 
 /* 주문 금액 요약 */
