@@ -604,6 +604,13 @@ function showManualSelector() {
     trigger.style.display = 'none';
     container.style.display = 'block';
 
+    // 영역 선택 중에는 단가 계산 버튼 비활성화
+    var calcBtn = document.getElementById('btn-calculate');
+    if (calcBtn) {
+        calcBtn.disabled = true;
+        calcBtn.dataset.blockedByManual = 'true';
+    }
+
     // 캔버스에는 항상 원본 이미지 사용 (배경 있는 상태에서 영역 선택)
     var imgSrc = '{{ file_path }}';
     var canvas = document.getElementById('polygon-canvas');
@@ -617,6 +624,13 @@ function hideManualSelector() {
     var container = document.getElementById('manual-canvas-container');
     if (trigger) trigger.style.display = '';
     if (container) container.style.display = 'none';
+
+    // 단가 계산 버튼 복원
+    var calcBtn = document.getElementById('btn-calculate');
+    if (calcBtn && calcBtn.dataset.blockedByManual === 'true') {
+        calcBtn.disabled = false;
+        delete calcBtn.dataset.blockedByManual;
+    }
 
     if (polygonDrawer) {
         polygonDrawer.destroy();

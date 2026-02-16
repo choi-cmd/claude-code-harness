@@ -371,12 +371,20 @@ document.querySelector('.image-form').addEventListener('htmx:afterRequest', func
     btn.querySelector('.btn-ratio-loading').style.display = 'none';
 });
 
-// 파일 선택 시 미리보기 + 자동 모드면 바로 제출
+// 파일 선택 시 미리보기 + 기존 결과 전체 초기화 + 자동 모드면 바로 제출
 document.getElementById('image').addEventListener('change', function(e) {
     var file = e.target.files[0];
     var container = document.getElementById('image-preview-container');
     var preview = document.getElementById('image-preview');
     var nameSpan = document.getElementById('image-preview-name');
+
+    // 새 파일 첨부 시 하위 결과 전체 초기화
+    document.getElementById('image-result').innerHTML = '';
+    window.ratioFilePath = '';
+    window.manualPolygon = '';
+    window.shapeAnalysisAvailable = false;
+    unlockSizeFields();
+    resetCalc();
 
     if (file) {
         nameSpan.textContent = file.name;
