@@ -56,28 +56,39 @@ async def upload_image(
             content = await file.read()
             f.write(content)
 
-        # 이미지 크기 읽기
-        with Image.open(temp_path) as img:
-            # PNG 투명 배경인 경우 실제 객체만의 크기 계산
-            if img.mode in ("RGBA", "LA") or (
-                img.mode == "P" and "transparency" in img.info
-            ):
-                # 알파 채널로 실제 객체 영역 찾기
-                if img.mode == "P":
-                    img = img.convert("RGBA")
+        # 이미지 크기 읽기 (PIL 우선, 실패 시 OpenCV 폴백)
+        is_transparent = False
+        try:
+            with Image.open(temp_path) as img:
+                # PNG 투명 배경인 경우 실제 객체만의 크기 계산
+                if img.mode in ("RGBA", "LA") or (
+                    img.mode == "P" and "transparency" in img.info
+                ):
+                    # 알파 채널로 실제 객체 영역 찾기
+                    if img.mode == "P":
+                        img = img.convert("RGBA")
 
-                bbox = img.getbbox()  # 투명하지 않은 영역의 바운딩 박스
-                if bbox:
-                    original_width = bbox[2] - bbox[0]
-                    original_height = bbox[3] - bbox[1]
-                    is_transparent = True
+                    bbox = img.getbbox()  # 투명하지 않은 영역의 바운딩 박스
+                    if bbox:
+                        original_width = bbox[2] - bbox[0]
+                        original_height = bbox[3] - bbox[1]
+                        is_transparent = True
+                    else:
+                        original_width, original_height = img.size
                 else:
+                    # JPG 등 투명도 없는 이미지는 전체 크기 사용
                     original_width, original_height = img.size
-                    is_transparent = False
-            else:
-                # JPG 등 투명도 없는 이미지는 전체 크기 사용
-                original_width, original_height = img.size
-                is_transparent = False
+        except Exception:
+            # PIL 실패 시 OpenCV로 폴백
+            import cv2
+            cv_img = cv2.imread(str(temp_path), cv2.IMREAD_UNCHANGED)
+            if cv_img is None:
+                raise ValueError("이미지 파일을 읽을 수 없습니다. 다른 파일을 첨부해 주세요.")
+            h, w = cv_img.shape[:2]
+            original_width, original_height = w, h
+            # RGBA인 경우 투명 배경 처리
+            if len(cv_img.shape) == 3 and cv_img.shape[2] == 4:
+                is_transparent = True
 
         # auto 모드: 이미지 픽셀 크기를 mm로 직접 사용
         if target_dimension == "auto":
