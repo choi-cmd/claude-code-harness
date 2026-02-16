@@ -6,7 +6,12 @@
 <div class="ratio-result-card ratio-error">
     <h3>❌ 제작 불가 크기</h3>
 
-    {% if preview_path %}
+    {% if outline_path %}
+    <div class="result-preview-wrap outline-preview">
+        <img src="{{ outline_path }}" alt="재단 아웃라인 미리보기">
+        <div class="outline-label">빨간 선 = 아크릴 재단 라인</div>
+    </div>
+    {% elif preview_path %}
     <div class="result-preview-wrap">
         <img src="{{ preview_path }}" alt="배경 제거 미리보기">
     </div>
@@ -43,7 +48,12 @@
 <div class="ratio-result-card">
     <h3>✅ 비율 계산 완료</h3>
 
-    {% if preview_path %}
+    {% if outline_path %}
+    <div class="result-preview-wrap outline-preview">
+        <img src="{{ outline_path }}" alt="재단 아웃라인 미리보기">
+        <div class="outline-label">빨간 선 = 아크릴 재단 라인</div>
+    </div>
+    {% elif preview_path %}
     <div class="result-preview-wrap">
         <img src="{{ preview_path }}" alt="배경 제거 미리보기">
     </div>
@@ -422,6 +432,21 @@
     max-width: 100%;
     max-height: 200px;
     object-fit: contain;
+}
+
+/* 아웃라인 미리보기 */
+.outline-preview {
+    position: relative;
+    background: #1a1a1a !important;
+}
+
+.outline-label {
+    text-align: center;
+    padding: 6px 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #e74c3c;
+    background: rgba(0,0,0,0.7);
 }
 
 .result-preview-noimage {

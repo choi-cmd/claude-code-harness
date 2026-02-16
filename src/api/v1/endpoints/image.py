@@ -19,6 +19,8 @@ from src.domain.calculator.shape_analyzer import (
     convert_to_mm,
     create_transparent_preview,
     create_preview_with_custom_mask,
+    create_outline_preview,
+    create_outline_with_custom_mask,
 )
 from src.domain.calculator.shape_pricing import ShapePricingService
 
@@ -128,6 +130,7 @@ async def upload_image(
         # OpenCV 형상 분석 (PNG/JPG만)
         shape_analysis = None
         preview_path = None
+        outline_path = None
         if ext in [".jpg", ".jpeg", ".png", ".bmp"]:
             metrics = analyze_image(str(temp_path))
             if metrics is not None:
@@ -203,6 +206,13 @@ async def upload_image(
                     if create_transparent_preview(str(temp_path), str(preview_output)):
                         preview_path = f"/static/uploads/{preview_filename}"
 
+                # 재단 아웃라인 미리보기 생성
+                outline_filename = f"temp_{file.filename}_outline.png"
+                outline_output = UPLOAD_DIR / outline_filename
+                is_rect = metrics.fill_ratio >= 0.95
+                if create_outline_preview(str(temp_path), str(outline_output), is_rectangle=is_rect):
+                    outline_path = f"/static/uploads/{outline_filename}"
+
         # 템플릿 렌더링
         return templates.TemplateResponse(
             "partials/image_ratio.html",
@@ -213,6 +223,7 @@ async def upload_image(
                 "is_transparent": is_transparent,
                 "file_path": f"/static/uploads/temp_{file.filename}",
                 "preview_path": preview_path,
+                "outline_path": outline_path,
                 "shape_analysis": shape_analysis,
             },
         )
@@ -308,6 +319,15 @@ async def manual_mask(
         ):
             preview_path = f"/static/uploads/{preview_filename}"
 
+        # 재단 아웃라인 미리보기 생성
+        outline_filename = f"{filename}_manual_outline.png"
+        outline_output = UPLOAD_DIR / outline_filename
+        outline_path = None
+        if create_outline_with_custom_mask(
+            str(actual_path), str(outline_output), polygon_points
+        ):
+            outline_path = f"/static/uploads/{outline_filename}"
+
         # 원본 이미지 크기 읽기
         import cv2
         from src.domain.calculator.shape_analyzer import _imread_safe
@@ -341,6 +361,7 @@ async def manual_mask(
                 "is_manual_mask": True,
                 "file_path": file_path,
                 "preview_path": preview_path,
+                "outline_path": outline_path,
                 "shape_analysis": shape_analysis,
                 "manual_polygon": polygon,
             },

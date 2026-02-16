@@ -283,6 +283,106 @@ def convert_to_mm(
     return metrics
 
 
+def create_outline_preview(
+    image_path: str | Path,
+    output_path: str | Path,
+    is_rectangle: bool = False,
+) -> bool:
+    """
+    원본 이미지 위에 재단 아웃라인(커팅 경로)을 표시한 미리보기 생성.
+    재단 영역 밖은 어둡게 처리하고, 빨간 선으로 커팅 경로를 표시한다.
+
+    Args:
+        image_path: 원본 이미지 경로
+        output_path: 출력 PNG 경로
+        is_rectangle: True이면 이미지 전체를 사각형 재단선으로 표시
+    """
+    img = _imread_safe(str(image_path), cv2.IMREAD_UNCHANGED)
+    if img is None:
+        return False
+
+    h, w = img.shape[:2]
+
+    # BGR 변환 (그리기용)
+    if len(img.shape) == 2:
+        draw_img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    elif img.shape[2] == 4:
+        draw_img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+    else:
+        draw_img = img.copy()
+
+    if is_rectangle:
+        mask = np.ones((h, w), dtype=np.uint8) * 255
+        contour = np.array([[[0, 0]], [[w - 1, 0]], [[w - 1, h - 1]], [[0, h - 1]]])
+    else:
+        mask = _create_mask(img)
+        if mask is None:
+            return False
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if not contours:
+            return False
+        contour = max(contours, key=cv2.contourArea)
+
+    # 재단 영역 밖 어둡게 (30% 밝기)
+    mask_inv = cv2.bitwise_not(mask)
+    draw_img[mask_inv > 0] = (draw_img[mask_inv > 0].astype(np.float32) * 0.3).astype(
+        np.uint8
+    )
+
+    # 재단 아웃라인 빨간색으로 표시
+    thickness = max(2, min(h, w) // 200)
+    cv2.drawContours(draw_img, [contour], -1, (0, 0, 255), thickness)
+
+    _imwrite_safe(str(output_path), draw_img)
+    return True
+
+
+def create_outline_with_custom_mask(
+    image_path: str | Path,
+    output_path: str | Path,
+    polygon_points: list[list[int]],
+) -> bool:
+    """
+    사용자 지정 영역의 정제된 아웃라인을 원본 이미지 위에 표시.
+    """
+    img = _imread_safe(str(image_path), cv2.IMREAD_UNCHANGED)
+    if img is None:
+        return False
+
+    h, w = img.shape[:2]
+    region_mask = np.zeros((h, w), dtype=np.uint8)
+    pts = np.array(polygon_points, dtype=np.int32)
+    cv2.fillPoly(region_mask, [pts], 255)
+
+    refined_mask = _refine_mask_in_region(img, region_mask)
+
+    contours, _ = cv2.findContours(refined_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not contours:
+        return False
+    contour = max(contours, key=cv2.contourArea)
+
+    # BGR 변환
+    if len(img.shape) == 2:
+        draw_img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    elif img.shape[2] == 4:
+        draw_img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+    else:
+        draw_img = img.copy()
+
+    # 재단 영역 밖 어둡게
+    mask_inv = cv2.bitwise_not(refined_mask)
+    draw_img[mask_inv > 0] = (draw_img[mask_inv > 0].astype(np.float32) * 0.3).astype(
+        np.uint8
+    )
+
+    # 재단 아웃라인
+    thickness = max(2, min(h, w) // 200)
+    cv2.drawContours(draw_img, [contour], -1, (0, 0, 255), thickness)
+
+    _imwrite_safe(str(output_path), draw_img)
+    return True
+
+
 def create_transparent_preview(image_path: str | Path, output_path: str | Path) -> bool:
     """
     JPG 등 불투명 이미지에서 배경을 제거한 투명 PNG 생성
