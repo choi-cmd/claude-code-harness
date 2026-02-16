@@ -81,7 +81,21 @@ def analyze_image(image_path: str | Path) -> ShapeMetrics | None:
     if not contours:
         return None
 
-    return _analyze_contours(contours)
+    metrics = _analyze_contours(contours)
+
+    # JPG 등 불투명 이미지에서 컨투어가 이미지 대부분을 덮으면
+    # 배경 분리가 실패한 것 → 단순 사각형으로 강제 처리
+    has_alpha = len(img.shape) == 3 and img.shape[2] == 4
+    if metrics and not has_alpha:
+        h, w = img.shape[:2]
+        total_area = w * h
+        if metrics.contour_area_px / total_area > 0.8:
+            metrics.fill_ratio = 1.0
+            metrics.vertex_count = 4
+            metrics.circularity = round(math.pi / 4, 4)
+            metrics.complexity_score = 0.0
+
+    return metrics
 
 
 def _analyze_contours(contours: list) -> ShapeMetrics | None:
