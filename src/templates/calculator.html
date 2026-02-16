@@ -68,7 +68,10 @@
                     >
                 </div>
             </div>
-            <button type="submit" class="btn-secondary">비율 계산</button>
+            <button type="submit" class="btn-secondary" id="btn-ratio">
+                <span class="btn-ratio-text">비율 계산</span>
+                <span class="btn-ratio-loading" style="display:none;">⏳ 이미지 분석 중...</span>
+            </button>
         </form>
     </div>
 
@@ -339,6 +342,20 @@ document.body.addEventListener('htmx:afterSwap', function(event) {
             document.getElementById('design_file_hint').style.display = 'none';
         }
     }
+});
+
+// 비율 계산 버튼 로딩 상태
+document.querySelector('.image-form').addEventListener('htmx:beforeRequest', function() {
+    var btn = document.getElementById('btn-ratio');
+    btn.disabled = true;
+    btn.querySelector('.btn-ratio-text').style.display = 'none';
+    btn.querySelector('.btn-ratio-loading').style.display = 'inline';
+});
+document.querySelector('.image-form').addEventListener('htmx:afterRequest', function() {
+    var btn = document.getElementById('btn-ratio');
+    btn.disabled = false;
+    btn.querySelector('.btn-ratio-text').style.display = 'inline';
+    btn.querySelector('.btn-ratio-loading').style.display = 'none';
 });
 
 // 파일 선택 시 자동 모드면 바로 제출
@@ -658,6 +675,22 @@ document.querySelector('.order-form').addEventListener('htmx:afterRequest', func
 .btn-secondary:hover {
     background: #F4B900;
     color: #fff;
+}
+
+.btn-secondary:disabled {
+    opacity: 0.7;
+    cursor: wait;
+    background: #F4B900;
+    color: #fff;
+}
+
+.btn-ratio-loading {
+    animation: pulse 1.2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
 
 .order-section {
