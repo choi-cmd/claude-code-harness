@@ -52,6 +52,26 @@ class ShapeMetrics:
     bbox_height_mm: float = 0.0
 
 
+def analyze_from_mask(mask: np.ndarray) -> ShapeMetrics | None:
+    """
+    미리 생성된 마스크에서 형상 분석 (rembg 연동용)
+
+    Args:
+        mask: 이진 마스크 (0/255)
+
+    Returns:
+        ShapeMetrics 또는 실패 시 None
+    """
+    if mask is None or mask.size == 0:
+        return None
+
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not contours:
+        return None
+
+    return _analyze_contours(contours)
+
+
 def analyze_image(image_path: str | Path) -> ShapeMetrics | None:
     """
     이미지에서 주요 형상을 분석하여 측정값 반환

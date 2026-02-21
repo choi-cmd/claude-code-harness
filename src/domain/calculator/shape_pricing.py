@@ -67,12 +67,15 @@ class ShapePricingService:
                 return info.get("surcharge", 1.0), info.get("label", level)
         return 1.35, "비효율"
 
-    def calculate_shape_price(self, metrics: ShapeMetrics) -> dict:
+    def calculate_shape_price(
+        self, metrics: ShapeMetrics, drilling_fee: int = 0
+    ) -> dict:
         """
         형상 기반 가격 계산
 
         Args:
             metrics: mm 변환이 완료된 ShapeMetrics
+            drilling_fee: 타공 비용 (키링 고리 등, 기본 0원)
 
         Returns:
             상세 견적 정보 dict
@@ -102,7 +105,7 @@ class ShapePricingService:
             * efficiency_mult
             * margin
         )
-        unit_price = int(math.ceil(raw_price / 10) * 10)
+        unit_price = int(math.ceil(raw_price / 10) * 10) + drilling_fee
 
         return {
             "material_cost": round(material_cost, 1),
@@ -114,6 +117,7 @@ class ShapePricingService:
             "efficiency_label": efficiency_label,
             "fill_ratio": metrics.fill_ratio,
             "margin": margin,
+            "drilling_fee": drilling_fee,
             "unit_price": unit_price,
             "area_mm2": metrics.area_mm2,
             "perimeter_mm": metrics.perimeter_mm,
@@ -141,7 +145,7 @@ class ShapePricingService:
         return count2, f"{cols2}개 x {rows2}개 배치 (90도 회전)"
 
     def full_quote(
-        self, metrics: ShapeMetrics, quantity: int
+        self, metrics: ShapeMetrics, quantity: int, drilling_fee: int = 0
     ) -> dict:
         """
         전체 견적 산출 (단가 + 수량 + 샘플비)
@@ -149,11 +153,12 @@ class ShapePricingService:
         Args:
             metrics: mm 변환 완료된 ShapeMetrics
             quantity: 주문 수량
+            drilling_fee: 타공 비용 (키링 고리 등, 기본 0원)
 
         Returns:
             전체 견적 정보
         """
-        price_info = self.calculate_shape_price(metrics)
+        price_info = self.calculate_shape_price(metrics, drilling_fee=drilling_fee)
         unit_price = price_info["unit_price"]
 
         min_qty, layout_info = self.calculate_min_quantity(

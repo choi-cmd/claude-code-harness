@@ -1,6 +1,6 @@
 [project]
 name = "claude-code-harness"
-version = "2.0.0"
+version = "3.0.0"
 description = "서블리원 아크릴 주문제작 신청시트"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -14,4 +14,5 @@ dependencies = [
     "email-validator>=2.0.0",
     "opencv-python-headless>=4.13.0.92",
     "numpy>=2.4.2",
+    "rembg[cpu]>=2.0.57",
 ]

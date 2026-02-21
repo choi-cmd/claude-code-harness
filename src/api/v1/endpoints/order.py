@@ -1,7 +1,6 @@
 """주문 API"""
 
-import os
-import shutil
+import logging
 from pathlib import Path
 from typing import Annotated, Optional
 
@@ -10,15 +9,17 @@ from fastapi import (
     Form,
     UploadFile,
     File,
-    HTTPException,
     Request,
     Depends,
 )
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from pydantic import ValidationError
 
 from src.domain.order.service import OrderService
 from src.domain.order.schemas import OrderCreate
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/order", tags=["order"])
 templates = Jinja2Templates(directory="src/templates")
@@ -106,5 +107,30 @@ async def submit_order(
             {"request": request, "order": order},
         )
 
+    except ValidationError as e:
+        # Pydantic 유효성 검사 에러 → 사용자 친화적 메시지
+        field_messages = {
+            "customer_name": "이름을 입력해 주세요.",
+            "customer_phone": "연락처를 정확히 입력해 주세요 (10자리 이상).",
+            "customer_email": "올바른 이메일 주소를 입력해 주세요.",
+            "width": "가로 크기를 확인해 주세요.",
+            "height": "세로 크기를 확인해 주세요.",
+            "quantity": "수량을 확인해 주세요.",
+        }
+        messages = []
+        for err in e.errors():
+            field = err["loc"][0] if err["loc"] else ""
+            messages.append(field_messages.get(field, str(err["msg"])))
+        error_msg = " / ".join(messages) if messages else "입력 정보를 확인해 주세요."
+        return templates.TemplateResponse(
+            "partials/error.html",
+            {"request": request, "error": error_msg},
+            status_code=200,
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"주문 처리 오류: {str(e)}")
+        logger.exception("주문 처리 오류")
+        return templates.TemplateResponse(
+            "partials/error.html",
+            {"request": request, "error": "주문 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."},
+            status_code=200,
+        )

@@ -1,0 +1,22 @@
+{
+  "print_offset_mm": 2.0,
+  "cutting_offset_mm": 2.0,
+  "smoothing_factor": 0.02,
+  "keyring_hole": {
+    "diameter_mm": 4.0,
+    "edge_distance_mm": 4.0,
+    "bridge_width_mm": 2.5
+  },
+  "internal_hole": {
+    "width_mm": 3.214,
+    "height_mm": 3.168,
+    "edge_distance_mm": 5.0
+  },
+  "drilling_fee": 100,
+  "preview": {
+    "print_line_color": [0, 0, 255],
+    "cutting_line_color": [0, 0, 0],
+    "hole_color": [0, 180, 0],
+    "line_thickness_ratio": 200
+  }
+}

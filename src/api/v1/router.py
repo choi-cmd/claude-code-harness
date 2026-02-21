@@ -69,22 +69,21 @@ async def calculate_shape(
     height: float = Form(...),
     quantity: int = Form(...),
     polygon: str = Form(""),
+    product_type: str = Form("objet"),
+    hole_type: str = Form("ring"),
 ) -> HTMLResponse:
     """
     형상 기반 견적 API (HTMX 호출) - 이미지 분석 모드
 
     Args:
-        file_path: 업로드된 이미지 경로 (예: /static/uploads/temp_file.png)
-        width: 바운딩 박스 가로 (mm)
-        height: 바운딩 박스 세로 (mm)
+        file_path: 업로드된 이미지 경로
+        width: 바운딩 박스 가로 (mm) - 키링이면 고리 포함 전체 크기
+        height: 바운딩 박스 세로 (mm) - 키링이면 고리 포함 전체 크기
         quantity: 주문 수량
-        polygon: 수동 선택 폴리곤 JSON (빈 문자열이면 자동 분석)
-
-    Returns:
-        형상 기반 견적 결과 HTML
+        polygon: 수동 선택 폴리곤 JSON
+        product_type: 제품 타입 (objet/keyring)
     """
     try:
-        # 파일명 추출 후 uploads 디렉토리에서 찾기
         from urllib.parse import unquote
         decoded_path = unquote(file_path)
         filename = Path(decoded_path).name
@@ -92,7 +91,6 @@ async def calculate_shape(
         if not actual_path.exists():
             raise HTTPException(status_code=400, detail="이미지 파일을 찾을 수 없습니다")
 
-        # 수동 선택 폴리곤이 있으면 커스텀 마스크 분석, 없으면 자동 분석
         import json
         if polygon and polygon.strip():
             polygon_points = json.loads(polygon)
@@ -102,12 +100,16 @@ async def calculate_shape(
         if metrics is None:
             raise HTTPException(status_code=400, detail="이미지 분석에 실패했습니다")
 
-        # 픽셀 → mm 변환
         metrics = convert_to_mm(metrics, width, height)
 
-        # 견적 산출
+        # 키링이면 타공비 100원 추가
+        drilling_fee = 0
+        if product_type == "keyring":
+            from src.domain.calculator.cutting_line_generator import get_drilling_fee
+            drilling_fee = get_drilling_fee()
+
         pricing = ShapePricingService()
-        quote = pricing.full_quote(metrics, quantity)
+        quote = pricing.full_quote(metrics, quantity, drilling_fee=drilling_fee)
 
         return templates.TemplateResponse(
             "partials/shape_result.html",
@@ -117,6 +119,8 @@ async def calculate_shape(
                 "width": width,
                 "height": height,
                 "quantity": quantity,
+                "product_type": product_type,
+                "hole_type": hole_type,
             },
         )
     except ValueError as e:

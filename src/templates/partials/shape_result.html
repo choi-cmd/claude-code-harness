@@ -68,8 +68,14 @@
                 <td>효율 할증 <small>({{ quote.efficiency_label }})</small></td>
                 <td>×{{ quote.efficiency_multiplier }}</td>
             </tr>
+            {% if quote.drilling_fee and quote.drilling_fee > 0 %}
+            <tr>
+                <td>타공비 <small>({% if hole_type == 'internal' %}내부 타공{% else %}고리 구멍{% endif %})</small></td>
+                <td>+{{ quote.drilling_fee }}원</td>
+            </tr>
+            {% endif %}
             <tr class="divider-row">
-                <td>개당 단가</td>
+                <td>개당 단가{% if quote.drilling_fee and quote.drilling_fee > 0 %} <small>(타공비 포함)</small>{% endif %}</td>
                 <td><strong>{{ "{:,}".format(quote.unit_price) }}원</strong></td>
             </tr>
         </table>

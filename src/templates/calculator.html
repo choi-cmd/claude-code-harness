@@ -36,7 +36,44 @@
             </div>
             <div class="file-format-hint">
                 <p><strong>PNG(추천)</strong>: 투명 배경 제외, 실제 이미지만 계산</p>
-                <p><strong>JPG</strong>: 배경 자동 분리로 형상 인식 가능</p>
+                <p><strong>JPG</strong>: AI 배경 제거로 정밀 형상 인식</p>
+            </div>
+
+            <!-- 제품 타입 선택 -->
+            <div class="product-type-section">
+                <label class="product-type-label">제품 타입</label>
+                <div class="product-type-radios">
+                    <label class="product-radio">
+                        <input type="radio" name="product_type" value="objet" checked onchange="toggleKeyringOptions()">
+                        <span class="radio-card">
+                            <strong>오브제</strong>
+                            <small>아크릴 재단만</small>
+                        </span>
+                    </label>
+                    <label class="product-radio">
+                        <input type="radio" name="product_type" value="keyring" onchange="toggleKeyringOptions()">
+                        <span class="radio-card">
+                            <strong>키링</strong>
+                            <small>고리 구멍 포함</small>
+                        </span>
+                    </label>
+                </div>
+                <!-- 키링 옵션 (숨김) -->
+                <div id="keyring-options" class="keyring-options" style="display:none;">
+                    <label class="keyring-label">타공 타입</label>
+                    <div class="hole-type-radios">
+                        <label class="hole-type-radio"><input type="radio" name="hole_type" value="ring" checked onchange="toggleHoleType()"><span>고리형 (외부)</span></label>
+                        <label class="hole-type-radio"><input type="radio" name="hole_type" value="internal" onchange="toggleHoleType()"><span>내부 타공</span></label>
+                    </div>
+                    <div id="hole-type-desc" class="hole-type-desc">고리가 재단선 밖으로 돌출 (+8mm)</div>
+                    <label class="keyring-label" style="margin-top:10px;">위치</label>
+                    <div class="keyring-position-radios">
+                        <label class="pos-radio"><input type="radio" name="keyring_position" value="top" checked><span>상단</span></label>
+                        <label class="pos-radio"><input type="radio" name="keyring_position" value="bottom"><span>하단</span></label>
+                        <label class="pos-radio"><input type="radio" name="keyring_position" value="left"><span>좌측</span></label>
+                        <label class="pos-radio"><input type="radio" name="keyring_position" value="right"><span>우측</span></label>
+                    </div>
+                </div>
             </div>
             <div class="form-row">
                 <div class="form-group flex-2">
@@ -79,7 +116,7 @@
             </div>
             <button type="submit" class="btn-secondary" id="btn-ratio">
                 <span class="btn-ratio-text">비율 계산</span>
-                <span class="btn-ratio-loading" style="display:none;">⏳ 이미지 분석 중...</span>
+                <span class="btn-ratio-loading" style="display:none;">AI 배경 제거 + 재단 라인 생성 중... (최대 10초)</span>
             </button>
         </form>
     </div>
@@ -103,6 +140,8 @@
     >
         <input type="hidden" id="shape_file_path" name="file_path" value="">
         <input type="hidden" id="shape_polygon" name="polygon" value="">
+        <input type="hidden" id="shape_product_type" name="product_type" value="objet">
+        <input type="hidden" id="shape_hole_type" name="hole_type" value="ring">
         <div class="form-row">
             <div class="form-group">
                 <label for="width">가로 (mm)</label>
@@ -297,6 +336,24 @@ var ratioUsed = false;
 // 형상 분석 모드 여부
 window.shapeAnalysisAvailable = false;
 
+// 키링 옵션 토글
+function toggleKeyringOptions() {
+    var isKeyring = document.querySelector('input[name="product_type"]:checked').value === 'keyring';
+    var opts = document.getElementById('keyring-options');
+    opts.style.display = isKeyring ? 'block' : 'none';
+}
+
+// 타공 타입 토글 (고리형/내부타공)
+function toggleHoleType() {
+    var holeType = document.querySelector('input[name="hole_type"]:checked').value;
+    var desc = document.getElementById('hole-type-desc');
+    if (holeType === 'internal') {
+        desc.textContent = '재단선 내부에 3.2mm 구멍 (크기 변동 없음)';
+    } else {
+        desc.textContent = '고리가 재단선 밖으로 돌출 (+8mm)';
+    }
+}
+
 // 이미지 업로드 후 형상 모드 활성화
 function enableCalculateButton() {
     var btn = document.getElementById('btn-calculate');
@@ -304,6 +361,7 @@ function enableCalculateButton() {
     var badge = document.getElementById('shape-mode-badge');
     var filePathInput = document.getElementById('shape_file_path');
     var polygonInput = document.getElementById('shape_polygon');
+    var productTypeInput = document.getElementById('shape_product_type');
 
     btn.disabled = false;
     hint.style.display = 'none';
@@ -314,6 +372,17 @@ function enableCalculateButton() {
     }
     // 수동 선택 폴리곤이 있으면 함께 전달
     polygonInput.value = window.manualPolygon || '';
+    // 제품 타입 전달
+    var ptRadio = document.querySelector('input[name="product_type"]:checked');
+    if (ptRadio && productTypeInput) {
+        productTypeInput.value = ptRadio.value;
+    }
+    // 타공 타입 전달
+    var htRadio = document.querySelector('input[name="hole_type"]:checked');
+    var holeTypeInput = document.getElementById('shape_hole_type');
+    if (htRadio && holeTypeInput) {
+        holeTypeInput.value = htRadio.value;
+    }
 }
 
 // 계산 버튼 비활성화 (이미지 초기화 시)
@@ -1103,6 +1172,156 @@ document.querySelector('.order-form').addEventListener('htmx:afterRequest', func
 .option-text small {
     font-size: 12px;
     color: #888;
+}
+
+/* 제품 타입 선택 */
+.product-type-section {
+    margin-bottom: 14px;
+    padding: 14px 16px;
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+}
+
+.product-type-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.product-type-radios {
+    display: flex;
+    gap: 10px;
+}
+
+.product-radio {
+    flex: 1;
+    cursor: pointer;
+}
+
+.product-radio input[type="radio"] {
+    display: none;
+}
+
+.radio-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 16px;
+    background: #fff;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.product-radio input:checked + .radio-card {
+    border-color: #F4B900;
+    background: #fffbf0;
+}
+
+.radio-card strong {
+    font-size: 14px;
+    color: #333;
+}
+
+.radio-card small {
+    font-size: 12px;
+    color: #888;
+}
+
+/* 키링 옵션 */
+.keyring-options {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.keyring-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 8px;
+}
+
+.keyring-position-radios {
+    display: flex;
+    gap: 8px;
+}
+
+.pos-radio {
+    flex: 1;
+    cursor: pointer;
+}
+
+.pos-radio input[type="radio"] {
+    display: none;
+}
+
+.pos-radio span {
+    display: block;
+    text-align: center;
+    padding: 8px 4px;
+    background: #fff;
+    border: 1.5px solid #ddd;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #666;
+    transition: all 0.2s;
+}
+
+.pos-radio input:checked + span {
+    border-color: #F4B900;
+    background: #fffbf0;
+    color: #333;
+    font-weight: 600;
+}
+
+/* 타공 타입 라디오 */
+.hole-type-radios {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.hole-type-radio {
+    flex: 1;
+    cursor: pointer;
+}
+
+.hole-type-radio input[type="radio"] {
+    display: none;
+}
+
+.hole-type-radio span {
+    display: block;
+    text-align: center;
+    padding: 8px 4px;
+    background: #fff;
+    border: 1.5px solid #ddd;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #666;
+    transition: all 0.2s;
+}
+
+.hole-type-radio input:checked + span {
+    border-color: #F4B900;
+    background: #fffbf0;
+    color: #333;
+    font-weight: 600;
+}
+
+.hole-type-desc {
+    font-size: 12px;
+    color: #888;
+    text-align: center;
+    padding: 4px 0;
 }
 
 /* 형상 분석 모드 뱃지 */

@@ -6,7 +6,18 @@
 <div class="ratio-result-card ratio-error">
     <h3>❌ 제작 불가 크기</h3>
 
-    {% if outline_path %}
+    {% if cutting_preview_path %}
+    <div class="result-preview-wrap cutting-preview">
+        <img src="{{ cutting_preview_path }}" alt="재단/인쇄 라인 미리보기">
+        <div class="cutting-legend">
+            <span class="legend-item legend-print">빨간 = 인쇄 라인</span>
+            <span class="legend-item legend-cutting">검정 = 재단 라인</span>
+            {% if product_type == 'keyring' %}
+            <span class="legend-item legend-hole">초록 = {% if hole_type == 'internal' %}내부 타공{% else %}고리 구멍{% endif %}</span>
+            {% endif %}
+        </div>
+    </div>
+    {% elif outline_path %}
     <div class="result-preview-wrap outline-preview">
         <img src="{{ outline_path }}" alt="재단 아웃라인 미리보기">
         <div class="outline-label">빨간 선 = 아크릴 재단 라인</div>
@@ -46,9 +57,20 @@
 
 {% else %}
 <div class="ratio-result-card">
-    <h3>✅ 비율 계산 완료</h3>
+    <h3>비율 계산 완료</h3>
 
-    {% if outline_path %}
+    {% if cutting_preview_path %}
+    <div class="result-preview-wrap cutting-preview" id="cutting-preview-area">
+        <img src="{{ cutting_preview_path }}" alt="재단/인쇄 라인 미리보기">
+        <div class="cutting-legend">
+            <span class="legend-item legend-print">빨간 = 인쇄 라인</span>
+            <span class="legend-item legend-cutting">검정 = 재단 라인</span>
+            {% if product_type == 'keyring' %}
+            <span class="legend-item legend-hole">초록 = {% if hole_type == 'internal' %}내부 타공{% else %}고리 구멍{% endif %}</span>
+            {% endif %}
+        </div>
+    </div>
+    {% elif outline_path %}
     <div class="result-preview-wrap outline-preview">
         <img src="{{ outline_path }}" alt="재단 아웃라인 미리보기">
         <div class="outline-label">빨간 선 = 아크릴 재단 라인</div>
@@ -73,6 +95,11 @@
         <span class="badge-icon">✏️</span>
         <span>직접 선택한 영역으로 계산되었습니다</span>
     </div>
+    {% elif rembg_used %}
+    <div class="info-badge">
+        <span class="badge-icon">🤖</span>
+        <span>AI가 배경을 제거하고 재단/인쇄 라인을 자동 생성했습니다</span>
+    </div>
     {% elif is_transparent %}
     <div class="info-badge">
         <span class="badge-icon">🎯</span>
@@ -95,24 +122,35 @@
             <span class="value">{{ result.ratio }}</span>
         </div>
         <div class="ratio-item highlight-box">
-            <span class="label">{% if result.target_dimension == 'auto' %}이미지 기준 크기:{% else %}계산된 크기 ({% if result.target_dimension == 'height' %}세로{% else %}가로{% endif %} 기준):{% endif %}</span>
+            <span class="label">{% if product_type == 'keyring' and hole_type != 'internal' %}전체 크기 (고리 포함):{% elif result.target_dimension == 'auto' %}이미지 기준 크기:{% else %}계산된 크기 ({% if result.target_dimension == 'height' %}세로{% else %}가로{% endif %} 기준):{% endif %}</span>
             <span class="value"><strong>{{ result.target_width|int }}mm × {{ result.target_height|int }}mm</strong></span>
         </div>
     </div>
 
     {% if shape_analysis %}
     <!-- 형상 분석 결과 -->
-    <div class="shape-analysis-section">
-        <h4>🔬 AI 형상 분석</h4>
+    <div class="shape-analysis-section" id="shape-analysis-area">
+        <h4>AI 형상 분석{% if shape_analysis.cutting_perimeter_mm %} (재단 라인 기준){% endif %}</h4>
         <div class="shape-metrics-mini">
+            {% if shape_analysis.cutting_perimeter_mm %}
+            <div class="sm-row">
+                <span class="sm-label">재단 아웃라인 길이</span>
+                <span class="sm-value">{{ "{:,.1f}".format(shape_analysis.cutting_perimeter_mm) }} mm</span>
+            </div>
+            <div class="sm-row">
+                <span class="sm-label">재단 면적</span>
+                <span class="sm-value">{{ "{:,.1f}".format(shape_analysis.cutting_area_mm2) }} mm2</span>
+            </div>
+            {% else %}
             <div class="sm-row">
                 <span class="sm-label">아웃라인 길이</span>
                 <span class="sm-value">{{ "{:,.1f}".format(shape_analysis.perimeter_mm) }} mm</span>
             </div>
             <div class="sm-row">
                 <span class="sm-label">실제 면적</span>
-                <span class="sm-value">{{ "{:,.1f}".format(shape_analysis.area_mm2) }} mm²</span>
+                <span class="sm-value">{{ "{:,.1f}".format(shape_analysis.area_mm2) }} mm2</span>
             </div>
+            {% endif %}
             <div class="sm-row">
                 <span class="sm-label">채움률</span>
                 <span class="sm-value">{{ shape_analysis.fill_pct }}%</span>
@@ -130,8 +168,15 @@
             </div>
         </div>
 
+        {% if shape_analysis.drilling_fee and shape_analysis.drilling_fee > 0 %}
+        <div class="sm-row" style="margin-top:4px; padding:4px 8px;">
+            <span class="sm-label">타공비 ({% if hole_type == 'internal' %}내부 타공{% else %}고리 구멍{% endif %})</span>
+            <span class="sm-value">+{{ shape_analysis.drilling_fee }}원/개</span>
+        </div>
+        {% endif %}
+
         <div class="shape-price-preview">
-            <span class="spp-label">형상 기반 단가 (예상)</span>
+            <span class="spp-label">형상 기반 단가 (예상){% if shape_analysis.drilling_fee and shape_analysis.drilling_fee > 0 %} <small style="color:#888;">(타공비 포함)</small>{% endif %}</span>
             <span class="spp-value">{{ "{:,}".format(shape_analysis.unit_price) }}원</span>
         </div>
     </div>
@@ -448,6 +493,45 @@
     color: #e74c3c;
     background: rgba(0,0,0,0.7);
 }
+
+/* 2겹 라인 미리보기 (재단+인쇄) */
+.cutting-preview {
+    position: relative;
+    background: #1a1a1a !important;
+}
+
+.cutting-legend {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    padding: 8px 12px;
+    background: rgba(0,0,0,0.8);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.legend-item::before {
+    content: '';
+    display: inline-block;
+    width: 14px;
+    height: 3px;
+    border-radius: 1px;
+}
+
+.legend-print { color: #ff4444; }
+.legend-print::before { background: #ff0000; }
+
+.legend-cutting { color: #ccc; }
+.legend-cutting::before { background: #000; border: 1px solid #666; }
+
+.legend-hole { color: #4CAF50; }
+.legend-hole::before { background: #00b400; border-radius: 50%; width: 8px; height: 8px; }
 
 .result-preview-noimage {
     display: flex;
