@@ -8,23 +8,20 @@
 
     {% if cutting_preview_path %}
     <div class="result-preview-wrap cutting-preview">
-        <img src="{{ cutting_preview_path }}" alt="재단/인쇄 라인 미리보기">
+        <img src="{{ cutting_preview_path }}?t={{ range(100000,999999)|random }}" alt="재단 라인 미리보기" onclick="openPreviewZoom(this)" style="cursor:zoom-in;">
         <div class="cutting-legend">
-            <span class="legend-item legend-print">빨간 = 인쇄 라인</span>
-            <span class="legend-item legend-cutting">검정 = 재단 라인</span>
-            {% if product_type == 'keyring' %}
-            <span class="legend-item legend-hole">초록 = {% if hole_type == 'internal' %}내부 타공{% else %}고리 구멍{% endif %}</span>
-            {% endif %}
+            <span class="legend-item legend-cutting" style="color:#e60000;">빨간 라인 = 재단(커팅) 라인</span>
         </div>
     </div>
+    <p class="preview-notice">견적을 위한 임시 파일입니다. 실제 시안과 다를 수 있습니다. 시안 확인을 원하시면 주문 시 <strong>시안 확인하기</strong>를 체크해 주세요.</p>
     {% elif outline_path %}
     <div class="result-preview-wrap outline-preview">
-        <img src="{{ outline_path }}" alt="재단 아웃라인 미리보기">
+        <img src="{{ outline_path }}" alt="재단 아웃라인 미리보기" onclick="openPreviewZoom(this)" style="cursor:zoom-in;">
         <div class="outline-label">빨간 선 = 아크릴 재단 라인</div>
     </div>
     {% elif preview_path %}
     <div class="result-preview-wrap">
-        <img src="{{ preview_path }}" alt="배경 제거 미리보기">
+        <img src="{{ preview_path }}" alt="배경 제거 미리보기" onclick="openPreviewZoom(this)" style="cursor:zoom-in;">
     </div>
     {% elif file_path and not file_path.endswith(('.ai', '.psd')) %}
     <div class="result-preview-wrap">
@@ -59,25 +56,23 @@
 <div class="ratio-result-card">
     <h3>비율 계산 완료</h3>
 
+    <div id="dynamic-preview-wrap">
     {% if cutting_preview_path %}
     <div class="result-preview-wrap cutting-preview" id="cutting-preview-area">
-        <img src="{{ cutting_preview_path }}" alt="재단/인쇄 라인 미리보기">
+        <img src="{{ cutting_preview_path }}?t={{ range(100000,999999)|random }}" alt="재단 라인 미리보기" onclick="openPreviewZoom(this)" style="cursor:zoom-in;">
         <div class="cutting-legend">
-            <span class="legend-item legend-print">빨간 = 인쇄 라인</span>
-            <span class="legend-item legend-cutting">검정 = 재단 라인</span>
-            {% if product_type == 'keyring' %}
-            <span class="legend-item legend-hole">초록 = {% if hole_type == 'internal' %}내부 타공{% else %}고리 구멍{% endif %}</span>
-            {% endif %}
+            <span class="legend-item legend-cutting" style="color:#e60000;">빨간 라인 = 재단(커팅) 라인</span>
         </div>
     </div>
+    <p class="preview-notice">견적을 위한 임시 파일입니다. 실제 시안과 다를 수 있습니다. 시안 확인을 원하시면 주문 시 <strong>시안 확인하기</strong>를 체크해 주세요.</p>
     {% elif outline_path %}
     <div class="result-preview-wrap outline-preview">
-        <img src="{{ outline_path }}" alt="재단 아웃라인 미리보기">
+        <img src="{{ outline_path }}" alt="재단 아웃라인 미리보기" onclick="openPreviewZoom(this)" style="cursor:zoom-in;">
         <div class="outline-label">빨간 선 = 아크릴 재단 라인</div>
     </div>
     {% elif preview_path %}
     <div class="result-preview-wrap">
-        <img src="{{ preview_path }}" alt="배경 제거 미리보기">
+        <img src="{{ preview_path }}" alt="배경 제거 미리보기" onclick="openPreviewZoom(this)" style="cursor:zoom-in;">
     </div>
     {% elif file_path and not file_path.endswith(('.ai', '.psd')) %}
     <div class="result-preview-wrap">
@@ -89,6 +84,7 @@
         <small>미리보기를 지원하지 않는 파일 형식입니다</small>
     </div>
     {% endif %}
+    </div>
 
     {% if is_manual_mask %}
     <div class="info-badge">
@@ -98,7 +94,7 @@
     {% elif rembg_used %}
     <div class="info-badge">
         <span class="badge-icon">🤖</span>
-        <span>AI가 배경을 제거하고 재단/인쇄 라인을 자동 생성했습니다</span>
+        <span>AI가 배경을 제거하고 재단 라인을 자동 생성했습니다</span>
     </div>
     {% elif is_transparent %}
     <div class="info-badge">
@@ -127,6 +123,7 @@
         </div>
     </div>
 
+    <div id="dynamic-analysis-wrap">
     {% if shape_analysis %}
     <!-- 형상 분석 결과 -->
     <div class="shape-analysis-section" id="shape-analysis-area">
@@ -157,11 +154,23 @@
             </div>
         </div>
 
-        <!-- 복잡도 미니 게이지 -->
+        <!-- 복잡도 미니 게이지 (3기준) -->
         <div class="complexity-mini">
             <div class="cm-header">
                 <span>복잡도</span>
-                <span class="cm-grade grade-{{ shape_analysis.complexity_label }}">{{ shape_analysis.complexity_label }}</span>
+                <span class="cm-grade grade-{{ shape_analysis.complexity_label|replace(' ', '-') }}">{{ shape_analysis.complexity_label }}</span>
+            </div>
+            <div class="cm-sub-scores">
+                <div class="cm-sub-row">
+                    <span class="cm-sub-label">아웃라인</span>
+                    <div class="cm-sub-bar"><div class="cm-sub-fill cm-sub-outline" style="width:{{ shape_analysis.outline_length_pct|int }}%"></div></div>
+                    <span class="cm-sub-pct">{{ shape_analysis.outline_length_pct|int }}%</span>
+                </div>
+                <div class="cm-sub-row">
+                    <span class="cm-sub-label">방향전환</span>
+                    <div class="cm-sub-bar"><div class="cm-sub-fill cm-sub-direction" style="width:{{ shape_analysis.direction_change_pct|int }}%"></div></div>
+                    <span class="cm-sub-pct">{{ shape_analysis.direction_change_pct|int }}%</span>
+                </div>
             </div>
             <div class="cm-bar">
                 <div class="cm-fill" style="width: {{ shape_analysis.complexity_pct|int }}%"></div>
@@ -181,6 +190,7 @@
         </div>
     </div>
     {% endif %}
+    </div><!-- /dynamic-analysis-wrap -->
 
     <!-- 직접 영역 선택 버튼 (항상 표시, .ai/.psd 제외) -->
     {% if file_path and not file_path.endswith(('.ai', '.psd')) %}
@@ -228,6 +238,9 @@
         window.ratioLocked = true;
         // 비율 계산에서 업로드한 파일 경로 저장
         window.ratioFilePath = '{{ file_path }}';
+        // 기본 크기 저장 (키링 돌출 전 원본 크기)
+        window.baseWidth = {{ base_target_width|default(result.target_width) }};
+        window.baseHeight = {{ base_target_height|default(result.target_height) }};
         // 형상 분석 여부 저장
         window.shapeAnalysisAvailable = {{ 'true' if shape_analysis else 'false' }};
         // 수동 마스크 폴리곤 저장 (있으면)
@@ -416,10 +429,53 @@
     border-radius: 10px;
 }
 
-.cm-grade.grade-낮음 { background: #d4edda; color: #155724; }
+.cm-grade.grade-단순 { background: #d4edda; color: #155724; }
 .cm-grade.grade-보통 { background: #fff3cd; color: #856404; }
-.cm-grade.grade-높음 { background: #f8d7da; color: #721c24; }
-.cm-grade.grade-매우높음 { background: #c0392b; color: #fff; }
+.cm-grade.grade-복잡 { background: #f8d7da; color: #721c24; }
+.cm-grade.grade-매우-복잡 { background: #c0392b; color: #fff; }
+
+/* 복잡도 서브스코어 미니 */
+.cm-sub-scores {
+    margin-bottom: 6px;
+}
+
+.cm-sub-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 3px;
+}
+
+.cm-sub-label {
+    flex: 0 0 52px;
+    font-size: 11px;
+    color: #4a6fa5;
+}
+
+.cm-sub-bar {
+    flex: 1;
+    height: 4px;
+    background: #e2e8f0;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.cm-sub-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.6s ease;
+}
+
+.cm-sub-outline { background: #3498db; }
+.cm-sub-direction { background: #e67e22; }
+
+.cm-sub-pct {
+    flex: 0 0 28px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #4a6fa5;
+    text-align: right;
+}
 
 .cm-bar {
     height: 6px;
@@ -459,7 +515,7 @@
 
 /* 결과 카드 이미지 미리보기 */
 .result-preview-wrap {
-    margin-bottom: 16px;
+    margin-bottom: 8px;
     border-radius: 8px;
     overflow: hidden;
     background:
@@ -477,6 +533,61 @@
     max-width: 100%;
     max-height: 200px;
     object-fit: contain;
+}
+
+/* 안내 문구 */
+.preview-notice {
+    font-size: 13px;
+    color: #c0392b;
+    text-align: center;
+    margin: 8px 0 12px 0;
+    line-height: 1.6;
+    padding: 10px 14px;
+    background: #fff5f5;
+    border: 1.5px solid #e74c3c;
+    border-radius: 8px;
+}
+.preview-notice strong {
+    color: #c0392b;
+    font-weight: 700;
+    text-decoration: underline;
+}
+
+/* 확대 보기 모달 */
+.preview-zoom-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: zoom-out;
+    -webkit-tap-highlight-color: transparent;
+}
+.preview-zoom-overlay img {
+    max-width: 95vw;
+    max-height: 90vh;
+    object-fit: contain;
+    border-radius: 4px;
+    box-shadow: 0 4px 30px rgba(0,0,0,0.5);
+    pointer-events: none;
+}
+.preview-zoom-close {
+    position: absolute;
+    top: 12px; right: 16px;
+    color: #fff;
+    font-size: 28px;
+    font-weight: 300;
+    cursor: pointer;
+    line-height: 1;
+    opacity: 0.8;
+}
+.preview-zoom-hint {
+    position: absolute;
+    bottom: 16px;
+    color: rgba(255,255,255,0.6);
+    font-size: 12px;
 }
 
 /* 아웃라인 미리보기 */
@@ -703,6 +814,33 @@
 
 <script src="/static/js/polygon-drawer.js"></script>
 <script>
+/* 이미지 확대 보기 */
+function openPreviewZoom(imgEl) {
+    var existing = document.querySelector('.preview-zoom-overlay');
+    if (existing) existing.remove();
+
+    var overlay = document.createElement('div');
+    overlay.className = 'preview-zoom-overlay';
+    overlay.onclick = function() { overlay.remove(); };
+
+    var closeBtn = document.createElement('span');
+    closeBtn.className = 'preview-zoom-close';
+    closeBtn.textContent = '\u00d7';
+
+    var zoomImg = document.createElement('img');
+    zoomImg.src = imgEl.src;
+    zoomImg.alt = imgEl.alt;
+
+    var hint = document.createElement('span');
+    hint.className = 'preview-zoom-hint';
+    hint.textContent = '\ud0ed\ud558\uc5ec \ub2eb\uae30';
+
+    overlay.appendChild(closeBtn);
+    overlay.appendChild(zoomImg);
+    overlay.appendChild(hint);
+    document.body.appendChild(overlay);
+}
+
 var polygonDrawer = null;
 
 function showManualSelector() {

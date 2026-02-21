@@ -48,7 +48,7 @@ class ShapePricingService:
             info = levels.get(level, {})
             if complexity_score <= info.get("max_score", 1.0):
                 return info.get("multiplier", 1.0), info.get("label", level)
-        return 1.4, "매우높음"
+        return 1.4, "매우 복잡"
 
     def fill_efficiency_surcharge(self, fill_ratio: float) -> tuple[float, str]:
         """
@@ -113,6 +113,10 @@ class ShapePricingService:
             "complexity_multiplier": complexity_mult,
             "complexity_label": complexity_label,
             "complexity_score": metrics.complexity_score,
+            "outline_length_score": metrics.outline_length_score,
+            "direction_change_score": metrics.direction_change_score,
+            "outline_length_pct": round(metrics.outline_length_score * 100, 1),
+            "direction_change_pct": round(metrics.direction_change_score * 100, 1),
             "efficiency_multiplier": efficiency_mult,
             "efficiency_label": efficiency_label,
             "fill_ratio": metrics.fill_ratio,

@@ -1,15 +1,36 @@
+<script>
+if (typeof openPreviewZoom === 'undefined') {
+    function openPreviewZoom(imgEl) {
+        var existing = document.querySelector('.preview-zoom-overlay');
+        if (existing) existing.remove();
+        var overlay = document.createElement('div');
+        overlay.className = 'preview-zoom-overlay';
+        overlay.onclick = function() { overlay.remove(); };
+        var closeBtn = document.createElement('span');
+        closeBtn.className = 'preview-zoom-close';
+        closeBtn.textContent = '\u00d7';
+        var zoomImg = document.createElement('img');
+        zoomImg.src = imgEl.src;
+        zoomImg.alt = imgEl.alt;
+        var hint = document.createElement('span');
+        hint.className = 'preview-zoom-hint';
+        hint.textContent = '\ud0ed\ud558\uc5ec \ub2eb\uae30';
+        overlay.appendChild(closeBtn);
+        overlay.appendChild(zoomImg);
+        overlay.appendChild(hint);
+        document.body.appendChild(overlay);
+    }
+}
+</script>
 <!-- 재단/인쇄 라인 미리보기 (키링 옵션 변경 시 부분 교체) -->
 {% if cutting_preview_path %}
 <div class="result-preview-wrap cutting-preview">
-    <img src="{{ cutting_preview_path }}" alt="재단/인쇄 라인 미리보기">
+    <img src="{{ cutting_preview_path }}?t={{ range(100000,999999)|random }}" alt="재단 라인 미리보기" onclick="openPreviewZoom(this)" style="cursor:zoom-in;">
     <div class="cutting-legend">
-        <span class="legend-item legend-print">빨간 = 인쇄 라인</span>
-        <span class="legend-item legend-cutting">검정 = 재단 라인</span>
-        {% if product_type == 'keyring' %}
-        <span class="legend-item legend-hole">초록 = {% if hole_type == 'internal' %}내부 타공{% else %}고리 구멍{% endif %}</span>
-        {% endif %}
+        <span class="legend-item legend-cutting" style="color:#e60000;">빨간 라인 = 재단(커팅) 라인</span>
     </div>
 </div>
+<p class="preview-notice" style="font-size:13px;color:#c0392b;text-align:center;margin:8px 0 12px;line-height:1.6;padding:10px 14px;background:#fff5f5;border:1.5px solid #e74c3c;border-radius:8px;">견적을 위한 임시 파일입니다. 실제 시안과 다를 수 있습니다. 시안 확인을 원하시면 주문 시 <strong style="color:#c0392b;font-weight:700;text-decoration:underline;">시안 확인하기</strong>를 체크해 주세요.</p>
 {% endif %}
 
 {% if shape_analysis %}
@@ -33,7 +54,19 @@
     <div class="complexity-mini">
         <div class="cm-header">
             <span>복잡도</span>
-            <span class="cm-grade grade-{{ shape_analysis.complexity_label }}">{{ shape_analysis.complexity_label }}</span>
+            <span class="cm-grade grade-{{ shape_analysis.complexity_label|replace(' ', '-') }}">{{ shape_analysis.complexity_label }}</span>
+        </div>
+        <div class="cm-sub-scores">
+            <div class="cm-sub-row">
+                <span class="cm-sub-label">아웃라인</span>
+                <div class="cm-sub-bar"><div class="cm-sub-fill cm-sub-outline" style="width:{{ shape_analysis.outline_length_pct|default(0)|int }}%"></div></div>
+                <span class="cm-sub-pct">{{ shape_analysis.outline_length_pct|default(0)|int }}%</span>
+            </div>
+            <div class="cm-sub-row">
+                <span class="cm-sub-label">방향전환</span>
+                <div class="cm-sub-bar"><div class="cm-sub-fill cm-sub-direction" style="width:{{ shape_analysis.direction_change_pct|default(0)|int }}%"></div></div>
+                <span class="cm-sub-pct">{{ shape_analysis.direction_change_pct|default(0)|int }}%</span>
+            </div>
         </div>
         <div class="cm-bar">
             <div class="cm-fill" style="width: {{ shape_analysis.complexity_pct|int }}%"></div>

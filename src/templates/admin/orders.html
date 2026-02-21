@@ -11,11 +11,17 @@
 {% block content %}
 <div class="admin-container">
     <div class="admin-header">
-        <h1>📦 Custom Order</h1>
+        <h1>&#x1f4e6; Custom Order</h1>
         <div class="admin-actions">
+            <a href="/admin/" class="btn-action btn-nav">대시보드</a>
             <a href="/" class="btn-action btn-secondary">고객 페이지로</a>
             <a href="/admin/logout" class="btn-action btn-logout">로그아웃</a>
         </div>
+    </div>
+
+    <div class="admin-nav">
+        <a href="/admin/" class="nav-tab">대시보드</a>
+        <a href="/admin/orders" class="nav-tab active">주문 관리</a>
     </div>
 
     <!-- 필터 탭 -->
@@ -213,10 +219,10 @@ function downloadSelected() {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 0;
     background: white;
     padding: 24px;
-    border-radius: 12px;
+    border-radius: 12px 12px 0 0;
 }
 
 .admin-header h1 {
@@ -241,7 +247,33 @@ function downloadSelected() {
 }
 
 .btn-secondary { background: #f0f0f0; color: #333; }
+.btn-nav { background: #F4B900; color: #1A1A1A; }
 .btn-logout { background: #ff4444; color: white; }
+
+/* 네비게이션 */
+.admin-nav {
+    display: flex;
+    gap: 0;
+    background: white;
+    padding: 0 24px;
+    border-bottom: 2px solid #e0e0e0;
+    border-radius: 0 0 12px 12px;
+    margin-bottom: 16px;
+}
+
+.nav-tab {
+    padding: 12px 20px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    color: #888;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+}
+
+.nav-tab:hover { color: #333; }
+.nav-tab.active { color: #F4B900; border-bottom-color: #F4B900; }
 .btn-download-csv { background: #28a745; color: white; }
 .btn-download-all { background: #17a2b8; color: white; }
 .btn-complete { background: #28a745; color: white; }

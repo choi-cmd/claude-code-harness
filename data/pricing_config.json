@@ -3,10 +3,10 @@
   "processing_rate": 1.86,
   "margin": 2.98,
   "complexity_levels": {
-    "low": {"max_score": 0.2, "multiplier": 1.0, "label": "낮음"},
-    "normal": {"max_score": 0.4, "multiplier": 1.1, "label": "보통"},
-    "high": {"max_score": 0.65, "multiplier": 1.25, "label": "높음"},
-    "very_high": {"max_score": 1.0, "multiplier": 1.4, "label": "매우높음"}
+    "low": {"max_score": 0.2, "multiplier": 1.0, "label": "단순"},
+    "normal": {"max_score": 0.4, "multiplier": 1.05, "label": "보통"},
+    "high": {"max_score": 0.65, "multiplier": 1.15, "label": "복잡"},
+    "very_high": {"max_score": 1.0, "multiplier": 1.25, "label": "매우 복잡"}
   },
   "efficiency_levels": {
     "excellent": {"min_fill": 0.85, "surcharge": 1.0, "label": "우수"},

@@ -102,7 +102,9 @@ def get_keyring_size_addition_mm(position: str = "top") -> tuple[float, float]:
     """
     config = _load_cutting_config()
     kh = config.get("keyring_hole", {})
-    protrusion = kh.get("edge_distance_mm", 4.0) + kh.get("diameter_mm", 4.0)
+    # 돌출량 = edge_distance + hole_radius + dome_radius
+    tab_margin_mm = 1.0
+    protrusion = kh.get("edge_distance_mm", 4.0) + kh.get("diameter_mm", 4.0) + tab_margin_mm
 
     if position in ("top", "bottom"):
         return (0.0, protrusion)
@@ -148,15 +150,21 @@ def generate_offset_contour(
 
     h, w = mask.shape[:2]
 
-    # dilate로 마스크 확장
+    # 1단계: 원본 마스크 사전 스무딩 (돌기/노이즈 제거 → 부드러운 윤곽)
+    # 블러 후 dilate하면 오프셋 거리가 정확하게 유지됨
+    pre_blur = max(7, min(h, w) // 60) | 1
+    pre_smoothed = cv2.GaussianBlur(mask, (pre_blur, pre_blur), 0)
+    _, pre_smoothed = cv2.threshold(pre_smoothed, 127, 255, cv2.THRESH_BINARY)
+
+    # 2단계: dilate로 오프셋 확장
     kernel_size = max(3, int(offset_px * 2) | 1)
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
     iterations = max(1, int(math.ceil(offset_px / (kernel_size / 2))))
-    expanded = cv2.dilate(mask, kernel, iterations=iterations)
+    expanded = cv2.dilate(pre_smoothed, kernel, iterations=iterations)
 
-    # GaussianBlur 스무딩
-    blur_size = max(5, int(offset_px * 1.5) | 1)
-    smoothed = cv2.GaussianBlur(expanded, (blur_size, blur_size), 0)
+    # 3단계: 가벼운 엣지 블러 (오프셋 거리를 밀지 않음)
+    edge_blur = max(3, int(offset_px * 0.5)) | 1
+    smoothed = cv2.GaussianBlur(expanded, (edge_blur, edge_blur), 0)
     _, smoothed = cv2.threshold(smoothed, 127, 255, cv2.THRESH_BINARY)
 
     # 컨투어 추출
@@ -373,6 +381,7 @@ def create_cutting_preview(
     image_path: str,
     result: CuttingLineResult,
     output_path: str,
+    size_mm: tuple[float, float] | None = None,
 ) -> bool:
     """
     예시 이미지 스타일 미리보기 생성
@@ -420,14 +429,17 @@ def create_cutting_preview(
     sh, sw = h * S, w * S
 
     # 마스크 2x 업스케일 (LINEAR + threshold → 부드러운 엣지)
-    print_mask_s = cv2.resize(result.print_mask, (w * S, h * S), interpolation=cv2.INTER_LINEAR)
-    _, print_mask_s = cv2.threshold(print_mask_s, 127, 255, cv2.THRESH_BINARY)
     cutting_mask_s = cv2.resize(result.cutting_mask, (w * S, h * S), interpolation=cv2.INTER_LINEAR)
     _, cutting_mask_s = cv2.threshold(cutting_mask_s, 127, 255, cv2.THRESH_BINARY)
 
+    # px/mm 스케일 (2x 캔버스 기준)
+    px_per_mm = sw / size_mm[0] if (size_mm and size_mm[0] > 0) else max(sh, sw) / 60.0
+
     # 여백 계산 (2x 기준)
     base_pad = int(max(sh, sw) * 0.06)
-    extra_pad = [0, 0, 0, 0]  # top, bottom, left, right
+    # 사이즈 텍스트용 하단 여백 추가
+    text_pad = int(max(sh, sw) * 0.08) if size_mm is not None else 0
+    extra_pad = [0, text_pad, 0, 0]  # top, bottom, left, right
 
     is_ring = (
         result.product_type == "keyring"
@@ -437,9 +449,8 @@ def create_cutting_preview(
 
     if is_ring:
         kh_cfg = config.get("keyring_hole", {})
-        protrusion_mm = kh_cfg.get("edge_distance_mm", 4.0) + kh_cfg.get("diameter_mm", 4.0) + 3.0
-        scale_est = max(sh, sw) / 60.0
-        extra_px = max(int(protrusion_mm * scale_est), int(max(sh, sw) * 0.15))
+        protrusion_mm = kh_cfg.get("edge_distance_mm", 1.5) + kh_cfg.get("diameter_mm", 2.0) + 1.5
+        extra_px = max(int(protrusion_mm * px_per_mm), int(max(sh, sw) * 0.12))
         pos_map = {"top": 0, "bottom": 1, "left": 2, "right": 3}
         extra_pad[pos_map.get(result.keyring_position, 0)] = extra_px
 
@@ -476,10 +487,8 @@ def create_cutting_preview(
             c[:, :, 1] = c[:, :, 1] * S + oy
         return c
 
-    # 색상
-    cutting_color = (80, 80, 80)   # 진회색
-    print_color = (0, 0, 200)      # 빨간색
-    hole_color = (0, 0, 200)       # 빨간색
+    # 색상 (실제 결과물과 동일하게 빨간색 단일 라인)
+    line_color = (0, 0, 230)       # 빨간색 (BGR)
 
     def _smooth_mask(mask_2d: np.ndarray) -> np.ndarray:
         """마스크 외곽선 스무딩 (GaussianBlur → 모서리 라운딩, 형태 보존)
@@ -503,64 +512,65 @@ def create_cutting_preview(
         outline = cv2.bitwise_xor(mask_2d, eroded)
         canvas[outline > 0] = color
 
-    # --- 캔버스 좌표 마스크 준비 ---
+    # --- 캔버스 좌표 마스크 준비 (재단 라인만 표시) ---
     cutting_cv = np.zeros((new_h, new_w), dtype=np.uint8)
     cutting_cv[oy : oy + sh, ox : ox + sw] = cutting_mask_s
 
-    print_cv = np.zeros((new_h, new_w), dtype=np.uint8)
-    print_cv[oy : oy + sh, ox : ox + sw] = print_mask_s
-
     if is_ring:
         hc = s_point(result.hole_center)
-        kh_cfg = config.get("keyring_hole", {})
-        bridge_w_mm = kh_cfg.get("bridge_width_mm", 2.5)
-        scale_est = max(sh, sw) / 60.0
-        bridge_w_px = bridge_w_mm * scale_est
         hole_r_s = result.hole_radius_px * S
 
-        # 탭 마스크: 구멍 원 + 풀폭 브릿지 → 블러 → 예시처럼 부드러운 캡슐형
+        # 돔: 정상(3) 기준 돔 외경 ≈ 5.1mm (구멍 3.2mm + 양쪽 ~1mm)
+        tab_margin_px = max(3, int(1.0 * px_per_mm))
+        tab_r = hole_r_s + tab_margin_px
+
+        # 탭 마스크: 돔 원 + 브릿지 (돔 폭 그대로 → 목 없음)
         tab_mask = np.zeros((new_h, new_w), dtype=np.uint8)
-        tab_r = hole_r_s + max(8, int(bridge_w_px * 1.2))
         cv2.circle(tab_mask, hc, tab_r, 255, -1)
 
-        # 브릿지: 원과 동일 폭, 본체 깊이 삽입 → 허리 없는 매끄러운 연결
+        # 브릿지: 돔 폭 그대로 본체까지 직선 연결
         bridge_half = tab_r
         sc = s_contour(result.cutting_contour)
         sbx, sby, sbw, sbh = cv2.boundingRect(sc)
+        overlap = max(sbh // 4, bridge_half * 2)  # 본체 깊숙이 겹침
+
         if result.keyring_position == "top":
-            cv2.rectangle(tab_mask, (hc[0] - bridge_half, hc[1]), (hc[0] + bridge_half, sby + sbh // 3), 255, -1)
+            cv2.rectangle(tab_mask, (hc[0] - bridge_half, hc[1]), (hc[0] + bridge_half, sby + overlap), 255, -1)
         elif result.keyring_position == "bottom":
-            cv2.rectangle(tab_mask, (hc[0] - bridge_half, sby + sbh * 2 // 3), (hc[0] + bridge_half, hc[1]), 255, -1)
+            cv2.rectangle(tab_mask, (hc[0] - bridge_half, sby + sbh - overlap), (hc[0] + bridge_half, hc[1]), 255, -1)
         elif result.keyring_position == "left":
-            cv2.rectangle(tab_mask, (hc[0], hc[1] - bridge_half), (sbx + sbw // 3, hc[1] + bridge_half), 255, -1)
+            cv2.rectangle(tab_mask, (hc[0], hc[1] - bridge_half), (sbx + overlap, hc[1] + bridge_half), 255, -1)
         elif result.keyring_position == "right":
-            cv2.rectangle(tab_mask, (sbx + sbw * 2 // 3, hc[1] - bridge_half), (hc[0], hc[1] + bridge_half), 255, -1)
+            cv2.rectangle(tab_mask, (sbx + sbw - overlap, hc[1] - bridge_half), (hc[0], hc[1] + bridge_half), 255, -1)
 
-        # 블러 → 캡슐형 (강한 블러로 완전히 둥근 형태)
-        blur_k = max(25, int(tab_r * 2.0)) | 1
+        # 돔 블러 → 둥근 꼭대기
+        blur_k = max(5, int(tab_r * 0.4)) | 1
         tab_mask = cv2.GaussianBlur(tab_mask, (blur_k, blur_k), 0)
-        _, tab_mask = cv2.threshold(tab_mask, 80, 255, cv2.THRESH_BINARY)
+        _, tab_mask = cv2.threshold(tab_mask, 127, 255, cv2.THRESH_BINARY)
 
-        # 재단 마스크 + 탭 합성 → 경계 스무딩 (접합부 모서리 제거)
+        # 합성
         combined = cv2.bitwise_or(cutting_cv, tab_mask)
-        smooth_k = max(15, int(tab_r * 1.5)) | 1
+
+        # 모폴로지 클로징 → 접합부 안쪽 코너만 둥글게 (돔 바깥쪽은 보존)
+        close_k = max(5, int(tab_r * 0.7)) | 1
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (close_k, close_k))
+        combined = cv2.morphologyEx(combined, cv2.MORPH_CLOSE, kernel)
+
+        # 가벼운 블러 → 전체 윤곽 부드럽게
+        smooth_k = max(5, int(tab_r * 0.4)) | 1
         combined = cv2.GaussianBlur(combined, (smooth_k, smooth_k), 0)
         _, combined = cv2.threshold(combined, 127, 255, cv2.THRESH_BINARY)
 
         # 구멍 뚫기
         cv2.circle(combined, hc, hole_r_s, 0, -1)
 
-        # 외곽선 (재단 + 탭 + 구멍 경계 모두 진회색)
-        _mask_outline(combined, cutting_color, thin)
-        # 구멍 원은 빨간색으로 덮어쓰기 (원형이므로 스무딩 불필요)
+        # 외곽선 (이미 스무딩 완료 → smooth=False로 추가 블러 방지)
+        _mask_outline(combined, line_color, thin, smooth=False)
         hole_m = np.zeros((new_h, new_w), dtype=np.uint8)
         cv2.circle(hole_m, hc, hole_r_s, 255, -1)
-        _mask_outline(hole_m, hole_color, thin, smooth=False)
+        _mask_outline(hole_m, line_color, thin, smooth=False)
     else:
-        _mask_outline(cutting_cv, cutting_color, thin)
-
-    # 인쇄 라인
-    _mask_outline(print_cv, print_color, thin)
+        _mask_outline(cutting_cv, line_color, thin)
 
     # 내부 타공 표시
     if (
@@ -573,7 +583,38 @@ def create_cutting_preview(
         axes = (result.hole_size_px[0] * S // 2, result.hole_size_px[1] * S // 2)
         hole_m = np.zeros((new_h, new_w), dtype=np.uint8)
         cv2.ellipse(hole_m, hc, axes, 0, 0, 360, 255, -1)
-        _mask_outline(hole_m, hole_color, thin, smooth=False)
+        _mask_outline(hole_m, line_color, thin, smooth=False)
+
+    # 사이즈 표기 (실제 결과물처럼 하단 중앙에 빨간 텍스트)
+    if size_mm is not None:
+        w_mm, h_mm = size_mm
+        # 소수점: 정수면 생략, 아니면 1자리
+        def _fmt(v: float) -> str:
+            return f"{int(v)}" if v == int(v) else f"{v:.1f}"
+        size_text = f"{_fmt(w_mm)}\u00d7{_fmt(h_mm)}mm"
+
+        try:
+            from PIL import Image as PILImage, ImageDraw, ImageFont
+
+            pil_canvas = PILImage.fromarray(cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB))
+            draw = ImageDraw.Draw(pil_canvas)
+            font_size = max(18, min(new_h, new_w) // 18)
+            try:
+                font = ImageFont.truetype("arial.ttf", font_size)
+            except Exception:
+                try:
+                    font = ImageFont.truetype("malgun.ttf", font_size)
+                except Exception:
+                    font = ImageFont.load_default()
+
+            bbox = draw.textbbox((0, 0), size_text, font=font)
+            tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+            tx = (new_w - tw) // 2
+            ty = new_h - base_pad // 2 - th // 2
+            draw.text((tx, ty), size_text, fill=(230, 0, 0), font=font)
+            canvas = cv2.cvtColor(np.array(pil_canvas), cv2.COLOR_RGB2BGR)
+        except ImportError:
+            pass
 
     return _imwrite_safe(output_path, canvas)
 

@@ -45,6 +45,10 @@ class ShapeMetrics:
     fill_ratio: float  # 채움률 (실제면적/바운딩박스면적)
     complexity_score: float  # 복잡도 점수 (0~1)
 
+    # 복잡도 서브스코어 (각 0~1)
+    outline_length_score: float = 0.0  # 아웃라인 길이 점수
+    direction_change_score: float = 0.0  # 방향 전환 점수
+
     # mm 변환 값 (pixel_to_mm 호출 후 설정)
     area_mm2: float = 0.0
     perimeter_mm: float = 0.0
@@ -160,9 +164,13 @@ def _analyze_contours(contours: list) -> ShapeMetrics | None:
         vertex_count = 4
         circularity = math.pi / 4
         complexity = 0.0
+        ol_score = 0.0
+        dc_score = 0.0
     else:
         # 복잡도 점수 계산 (레이저 재단 기준)
-        complexity = _calculate_complexity(vertex_count, perimeter, area, acute_ratio)
+        complexity, ol_score, dc_score = _calculate_complexity(
+            vertex_count, perimeter, area, acute_ratio, main_contour
+        )
 
     return ShapeMetrics(
         contour_area_px=area,
@@ -172,6 +180,8 @@ def _analyze_contours(contours: list) -> ShapeMetrics | None:
         circularity=round(circularity, 4),
         fill_ratio=round(fill_ratio, 4),
         complexity_score=round(complexity, 4),
+        outline_length_score=round(ol_score, 4),
+        direction_change_score=round(dc_score, 4),
     )
 
 
@@ -598,35 +608,35 @@ def _calculate_complexity(
     perimeter: float,
     area: float,
     acute_ratio: float,
-) -> float:
+    contour: np.ndarray,
+) -> tuple[float, float, float]:
     """
-    레이저 재단 복잡도 점수 (0~1)
+    레이저 재단 복잡도 점수 (0~1) + 2기준별 서브스코어
 
-    레이저 커팅 난이도에 영향을 주는 요소:
-    - 꼭짓점 수 (방향 전환 횟수) : 40%  → 레이저 헤드 감속/가속
-    - 예각 비율 (90° 미만 꼭짓점) : 35% → 날카로운 모서리 정밀 커팅
-    - 둘레/면적 비율 : 25%               → 면적 대비 커팅 경로 길이
+    2가지 기준:
+    - 아웃라인 길이 (50%): bbox 둘레 대비 실제 둘레 비율
+    - 방향 전환 (50%): 꼭짓점 수 + 예각 비율 혼합
+
+    Returns:
+        (전체 복잡도, 아웃라인 길이 점수, 방향 전환 점수)
     """
-    # 1. 꼭짓점 수 (4=사각형, 20+이면 복잡)
-    #    4개 이하: 0, 4~20: 선형 증가, 20+: 1
-    vertex_norm = min(max((vertex_count - 4) / 16, 0), 1)
+    # 1. 아웃라인 길이 점수 - bbox 둘레 대비 실제 둘레 비율
+    x, y, bw, bh = cv2.boundingRect(contour)
+    bbox_perimeter = 2 * (bw + bh) if (bw + bh) > 0 else 1
+    outline_ratio = perimeter / bbox_perimeter
+    # bbox 둘레와 같으면(사각형) 0, 2배 이상이면 1
+    outline_length_score = min(max((outline_ratio - 1.0) / 1.0, 0), 1)
 
-    # 2. 예각 비율 (0=모두 둔각, 1=모두 예각)
+    # 2. 방향 전환 점수 - 꼭짓점 수 + 예각 비율 혼합
+    vertex_norm = min(max((vertex_count - 4) / 32, 0), 1)  # 36개 이상이어야 1 (기존 20개→36개)
     acute_norm = min(acute_ratio, 1.0)
+    direction_change_score = vertex_norm * 0.6 + acute_norm * 0.4
 
-    # 3. 둘레/면적 비율 (면적 대비 커팅 경로가 길수록 복잡)
-    if area > 0:
-        # 원: perimeter/sqrt(area) ≈ 3.545 (가장 효율적)
-        # 사각형: ≈ 4.0
-        # 복잡한 형상: 6.0+
-        ratio = perimeter / math.sqrt(area)
-        pa_norm = min(max((ratio - 4.0) / 8.0, 0), 1)
-    else:
-        pa_norm = 0
-
+    # 최종 점수
     score = (
-        vertex_norm * 0.40
-        + acute_norm * 0.35
-        + pa_norm * 0.25
+        outline_length_score * 0.50
+        + direction_change_score * 0.50
     )
-    return min(max(score, 0), 1)
+    score = min(max(score, 0), 1)
+
+    return score, outline_length_score, direction_change_score

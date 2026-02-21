@@ -11,6 +11,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse,
 from fastapi.templating import Jinja2Templates
 
 from src.domain.order.service import OrderService
+from src.domain.settings.repository import SettingsRepository
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 templates = Jinja2Templates(directory="src/templates")
@@ -25,6 +26,14 @@ def get_order_service() -> OrderService:
 
 
 OrderServiceDep = Annotated[OrderService, Depends(get_order_service)]
+
+
+def get_settings_repository() -> SettingsRepository:
+    """Settings 저장소 의존성"""
+    return SettingsRepository()
+
+
+SettingsRepoDep = Annotated[SettingsRepository, Depends(get_settings_repository)]
 
 
 def verify_admin(admin_token: Optional[str] = Cookie(None)) -> bool:
@@ -42,7 +51,7 @@ async def admin_login_page(request: Request) -> HTMLResponse:
 async def admin_login(password: str = Form(...)) -> RedirectResponse:
     """관리자 로그인 처리"""
     if password == ADMIN_PASSWORD:
-        response = RedirectResponse(url="/admin/orders", status_code=303)
+        response = RedirectResponse(url="/admin/", status_code=303)
         response.set_cookie(key="admin_token", value=ADMIN_PASSWORD, httponly=True)
         return response
     else:
@@ -55,6 +64,109 @@ async def admin_logout() -> RedirectResponse:
     response = RedirectResponse(url="/admin/login", status_code=303)
     response.delete_cookie(key="admin_token")
     return response
+
+
+@router.get("/", response_class=HTMLResponse)
+async def admin_dashboard(
+    request: Request,
+    admin_token: Optional[str] = Cookie(None),
+) -> HTMLResponse:
+    """관리자 대시보드"""
+    if not verify_admin(admin_token):
+        return RedirectResponse(url="/admin/login", status_code=303)
+    return templates.TemplateResponse("admin/dashboard.html", {"request": request})
+
+
+@router.get("/settings/{calc_type}", response_class=HTMLResponse)
+async def admin_settings_page(
+    request: Request,
+    calc_type: str,
+    repo: SettingsRepoDep,
+    admin_token: Optional[str] = Cookie(None),
+    saved: Optional[str] = None,
+) -> HTMLResponse:
+    """계산기 설정 페이지"""
+    if not verify_admin(admin_token):
+        return RedirectResponse(url="/admin/login", status_code=303)
+
+    settings = repo.get_by_type(calc_type)
+    if settings is None:
+        raise HTTPException(status_code=404, detail="존재하지 않는 계산기 타입입니다")
+
+    return templates.TemplateResponse(
+        "admin/settings.html",
+        {
+            "request": request,
+            "calc_type": calc_type,
+            "settings": settings,
+            "save_success": saved == "1",
+        },
+    )
+
+
+@router.post("/settings/{calc_type}")
+async def admin_settings_save(
+    request: Request,
+    calc_type: str,
+    repo: SettingsRepoDep,
+    admin_token: Optional[str] = Cookie(None),
+    display_name: str = Form(""),
+    enabled: str = Form("false"),
+    description: str = Form(""),
+    allowed_types: str = Form(""),
+    max_size_mb: int = Form(10),
+    sample_fee: int = Form(10000),
+    discount_rate: int = Form(0),
+    template_fee: int = Form(10000),
+) -> RedirectResponse:
+    """계산기 설정 저장"""
+    if not verify_admin(admin_token):
+        raise HTTPException(status_code=401, detail="인증 필요")
+
+    if calc_type not in SettingsRepository.VALID_TYPES:
+        raise HTTPException(status_code=404, detail="존재하지 않는 계산기 타입입니다")
+
+    # 폼 데이터를 파싱하여 저장
+    form_data = await request.form()
+
+    # 기본 정보
+    update_data: dict = {
+        "display_name": display_name,
+        "enabled": enabled == "true",
+        "description": description,
+    }
+
+    # 업로드 설정
+    types_list = [t.strip() for t in allowed_types.split(",") if t.strip()]
+    update_data["upload"] = {
+        "allowed_types": types_list,
+        "max_size_mb": max_size_mb,
+    }
+
+    # 가격 설정
+    update_data["pricing"] = {
+        "sample_fee": sample_fee,
+        "discount_rate": discount_rate,
+        "template_fee": template_fee,
+    }
+
+    # 필드 설정 (기존 유지 + 체크박스 반영)
+    current = repo.get_by_type(calc_type) or {}
+    fields = current.get("fields", {})
+    for key in fields:
+        fields[key]["required"] = f"field_{key}_required" in form_data
+        fields[key]["visible"] = f"field_{key}_visible" in form_data
+    update_data["fields"] = fields
+
+    # 옵션은 기존 값 유지
+    if "options" in current:
+        update_data["options"] = current["options"]
+
+    repo.update(calc_type, update_data)
+
+    return RedirectResponse(
+        url=f"/admin/settings/{calc_type}?saved=1", status_code=303
+    )
 
 
 @router.get("/orders", response_class=HTMLResponse)

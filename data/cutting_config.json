@@ -1,11 +1,11 @@
 {
-  "print_offset_mm": 2.0,
-  "cutting_offset_mm": 2.0,
+  "print_offset_mm": 0.5,
+  "cutting_offset_mm": 1.0,
   "smoothing_factor": 0.02,
   "keyring_hole": {
-    "diameter_mm": 4.0,
-    "edge_distance_mm": 4.0,
-    "bridge_width_mm": 2.5
+    "diameter_mm": 3.2,
+    "edge_distance_mm": 0.2,
+    "bridge_width_mm": 1.5
   },
   "internal_hole": {
     "width_mm": 3.214,

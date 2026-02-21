@@ -3,6 +3,7 @@
 {% block content %}
 <div class="calculator-card">
     <div class="header-section">
+        <a href="/" class="btn-back-home">&larr; 소재 선택</a>
         <img src="/static/images/logo.png" alt="서블리원 로고" class="logo">
         <div class="title-group">
             <h1>서블리원 아크릴 주문제작 프로그램</h1>
@@ -68,10 +69,10 @@
                     <div id="hole-type-desc" class="hole-type-desc">고리가 재단선 밖으로 돌출 (+8mm)</div>
                     <label class="keyring-label" style="margin-top:10px;">위치</label>
                     <div class="keyring-position-radios">
-                        <label class="pos-radio"><input type="radio" name="keyring_position" value="top" checked><span>상단</span></label>
-                        <label class="pos-radio"><input type="radio" name="keyring_position" value="bottom"><span>하단</span></label>
-                        <label class="pos-radio"><input type="radio" name="keyring_position" value="left"><span>좌측</span></label>
-                        <label class="pos-radio"><input type="radio" name="keyring_position" value="right"><span>우측</span></label>
+                        <label class="pos-radio"><input type="radio" name="keyring_position" value="top" checked onchange="onPositionChange()"><span>상단</span></label>
+                        <label class="pos-radio"><input type="radio" name="keyring_position" value="bottom" onchange="onPositionChange()"><span>하단</span></label>
+                        <label class="pos-radio"><input type="radio" name="keyring_position" value="left" onchange="onPositionChange()"><span>좌측</span></label>
+                        <label class="pos-radio"><input type="radio" name="keyring_position" value="right" onchange="onPositionChange()"><span>우측</span></label>
                     </div>
                 </div>
             </div>
@@ -142,6 +143,8 @@
         <input type="hidden" id="shape_polygon" name="polygon" value="">
         <input type="hidden" id="shape_product_type" name="product_type" value="objet">
         <input type="hidden" id="shape_hole_type" name="hole_type" value="ring">
+        <input type="hidden" id="shape_base_width" name="base_width" value="">
+        <input type="hidden" id="shape_base_height" name="base_height" value="">
         <div class="form-row">
             <div class="form-group">
                 <label for="width">가로 (mm)</label>
@@ -341,6 +344,10 @@ function toggleKeyringOptions() {
     var isKeyring = document.querySelector('input[name="product_type"]:checked').value === 'keyring';
     var opts = document.getElementById('keyring-options');
     opts.style.display = isKeyring ? 'block' : 'none';
+    // hidden input 동기화
+    document.getElementById('shape_product_type').value = isKeyring ? 'keyring' : 'objet';
+    // 재단 라인 재생성
+    refreshCuttingPreview();
 }
 
 // 타공 타입 토글 (고리형/내부타공)
@@ -350,8 +357,115 @@ function toggleHoleType() {
     if (holeType === 'internal') {
         desc.textContent = '재단선 내부에 3.2mm 구멍 (크기 변동 없음)';
     } else {
-        desc.textContent = '고리가 재단선 밖으로 돌출 (+8mm)';
+        desc.textContent = '고리가 재단선 밖으로 돌출';
     }
+    // hidden input 동기화
+    document.getElementById('shape_hole_type').value = holeType;
+    // 재단 라인 재생성
+    refreshCuttingPreview();
+}
+
+// 키링 위치 변경
+function onPositionChange() {
+    refreshCuttingPreview();
+}
+
+// 제품 옵션 변경 시 재단 라인 재생성 (update-cutting-lines API 호출)
+function refreshCuttingPreview() {
+    if (!window.ratioFilePath) return;
+
+    var productType = document.querySelector('input[name="product_type"]:checked').value;
+    var holeType = document.querySelector('input[name="hole_type"]:checked').value;
+    var position = document.querySelector('input[name="keyring_position"]:checked').value;
+    var baseW = window.baseWidth || document.getElementById('width').value;
+    var baseH = window.baseHeight || document.getElementById('height').value;
+
+    // 키링 ring 타입 크기 조정 (돌출량 = edge_distance 3.5 + diameter 3.2 + tab_margin 1.0 = 7.7mm)
+    var PROTRUSION = 4.4;
+    var displayW = parseFloat(baseW);
+    var displayH = parseFloat(baseH);
+    if (productType === 'keyring' && holeType === 'ring') {
+        if (position === 'top' || position === 'bottom') displayH += PROTRUSION;
+        else displayW += PROTRUSION;
+    }
+    displayW = Math.round(displayW);
+    displayH = Math.round(displayH);
+
+    // 크기 표시 업데이트
+    document.getElementById('width').value = displayW;
+    document.getElementById('height').value = displayH;
+    var sizeStrong = document.querySelector('.highlight-box .value strong');
+    if (sizeStrong) sizeStrong.textContent = displayW + 'mm \u00d7 ' + displayH + 'mm';
+    var sizeLabel = document.querySelector('.highlight-box .label');
+    if (sizeLabel) {
+        if (productType === 'keyring' && holeType !== 'internal') {
+            sizeLabel.textContent = '\uc804\uccb4 \ud06c\uae30 (\uace0\ub9ac \ud3ec\ud568):';
+        } else if (window.baseWidth == displayW && window.baseHeight == displayH) {
+            sizeLabel.textContent = '\uc774\ubbf8\uc9c0 \uae30\uc900 \ud06c\uae30:';
+        }
+    }
+
+    // 로딩 표시
+    var dynPreview = document.getElementById('dynamic-preview-wrap');
+    if (dynPreview) dynPreview.style.opacity = '0.5';
+
+    var formData = new FormData();
+    formData.append('file_path', window.ratioFilePath);
+    formData.append('target_width', baseW);
+    formData.append('target_height', baseH);
+    formData.append('product_type', productType);
+    formData.append('keyring_position', position);
+    formData.append('hole_type', holeType);
+
+    fetch('/api/image/update-cutting-lines', {
+        method: 'POST',
+        body: formData
+    })
+    .then(function(res) { return res.text(); })
+    .then(function(html) {
+        var temp = document.createElement('div');
+        temp.innerHTML = html;
+
+        // 미리보기 교체
+        if (dynPreview) {
+            var newPreview = temp.querySelector('.cutting-preview');
+            var newNotice = temp.querySelector('.preview-notice');
+            // 이미지 캐시 방지: src에 타임스탬프 추가
+            if (newPreview) {
+                var img = newPreview.querySelector('img');
+                if (img) {
+                    var src = img.src || img.getAttribute('src');
+                    img.setAttribute('src', src.split('?')[0] + '?t=' + Date.now());
+                }
+            }
+            dynPreview.innerHTML = '';
+            if (newPreview) dynPreview.appendChild(newPreview);
+            if (newNotice) dynPreview.appendChild(newNotice);
+            dynPreview.style.opacity = '1';
+        }
+
+        // 형상 분석 교체
+        var dynAnalysis = document.getElementById('dynamic-analysis-wrap');
+        if (dynAnalysis) {
+            var newAnalysis = temp.querySelector('.shape-analysis-section');
+            dynAnalysis.innerHTML = '';
+            if (newAnalysis) dynAnalysis.appendChild(newAnalysis);
+        }
+
+        // 스크립트 실행 (openPreviewZoom 등)
+        temp.querySelectorAll('script').forEach(function(s) {
+            try { eval(s.textContent); } catch(e) {}
+        });
+
+        // 단가 계산 재실행
+        var calcBtn = document.getElementById('btn-calculate');
+        if (calcBtn && !calcBtn.disabled) {
+            document.querySelector('.calculator-form').dispatchEvent(new Event('submit'));
+        }
+    })
+    .catch(function(err) {
+        if (dynPreview) dynPreview.style.opacity = '1';
+    });
 }
 
 // 이미지 업로드 후 형상 모드 활성화
@@ -370,6 +484,11 @@ function enableCalculateButton() {
     if (window.ratioFilePath) {
         filePathInput.value = window.ratioFilePath;
     }
+    // 기본 크기 (키링 고리 돌출 전 원본) 전달
+    var bwInput = document.getElementById('shape_base_width');
+    var bhInput = document.getElementById('shape_base_height');
+    if (bwInput && window.baseWidth) bwInput.value = window.baseWidth;
+    if (bhInput && window.baseHeight) bhInput.value = window.baseHeight;
     // 수동 선택 폴리곤이 있으면 함께 전달
     polygonInput.value = window.manualPolygon || '';
     // 제품 타입 전달
@@ -449,11 +568,15 @@ document.getElementById('image').addEventListener('change', function(e) {
 
     // 새 파일 첨부 시 하위 결과 전체 초기화
     document.getElementById('image-result').innerHTML = '';
+    document.getElementById('result').innerHTML = '<p class="placeholder">\uc704 \uc815\ubcf4\ub97c \uc785\ub825\ud558\uc2dc\uba74 \uc790\ub3d9\uc73c\ub85c \uacc4\uc0b0\ub429\ub2c8\ub2e4.</p>';
     window.ratioFilePath = '';
+    window.baseWidth = 0;
+    window.baseHeight = 0;
     window.manualPolygon = '';
     window.shapeAnalysisAvailable = false;
     unlockSizeFields();
-    resetCalc();
+    disableCalculateButton();
+    document.getElementById('order-section').style.display = 'none';
 
     // PNG가 아닌 파일로 바꿨으면 자동 크기 해제
     var autoCheckbox = document.getElementById('auto-size');
@@ -993,6 +1116,28 @@ document.querySelector('.order-form').addEventListener('htmx:afterRequest', func
         width: 100%;
         justify-content: center;
     }
+}
+
+/* 소재 선택 뒤로가기 */
+.btn-back-home {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 14px;
+    background: #fff;
+    color: #666;
+    border: 1.5px solid #ddd;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.btn-back-home:hover {
+    color: #F4B900;
+    border-color: #F4B900;
 }
 
 /* 헤더 하단 구분선 */

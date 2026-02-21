@@ -66,6 +66,10 @@ def _build_shape_analysis(
         "complexity_pct": round(metrics.complexity_score * 100, 1),
         "vertex_count": metrics.vertex_count,
         "circularity": metrics.circularity,
+        "outline_length_score": metrics.outline_length_score,
+        "direction_change_score": metrics.direction_change_score,
+        "outline_length_pct": round(metrics.outline_length_score * 100, 1),
+        "direction_change_pct": round(metrics.direction_change_score * 100, 1),
         "unit_price": price_info["unit_price"],
         "material_cost": price_info["material_cost"],
         "processing_cost": price_info["processing_cost"],
@@ -237,6 +241,8 @@ async def upload_image(
         preview_path = None
         outline_path = None
         cutting_preview_path = None
+        base_target_width = float(result.target_width)
+        base_target_height = float(result.target_height)
 
         # 키링이면 drilling_fee 적용 (고리형/내부타공 모두)
         drilling_fee = get_drilling_fee() if product_type == "keyring" else 0
@@ -293,11 +299,12 @@ async def upload_image(
                             target_dimension=result.target_dimension,
                         )
 
-                    # 2겹 라인 미리보기 생성
+                    # 재단 라인 미리보기 생성
                     cutting_preview_filename = f"temp_{file.filename}_cutting.png"
                     cutting_preview_output = UPLOAD_DIR / cutting_preview_filename
                     if create_cutting_preview(
-                        str(temp_path), cutting_result, str(cutting_preview_output)
+                        str(temp_path), cutting_result, str(cutting_preview_output),
+                        size_mm=(float(result.target_width), float(result.target_height)),
                     ):
                         cutting_preview_path = f"/static/uploads/{cutting_preview_filename}"
 
@@ -378,6 +385,8 @@ async def upload_image(
                 "hole_type": hole_type,
                 "keyring_position": keyring_position,
                 "rembg_used": rembg_used,
+                "base_target_width": base_target_width,
+                "base_target_height": base_target_height,
             },
         )
 
@@ -470,10 +479,19 @@ async def update_cutting_lines(
             shape_analysis["cutting_area_mm2"] = cutting_metrics["area_mm2"]
             shape_analysis["cutting_perimeter_mm"] = cutting_metrics["perimeter_mm"]
 
+            # 키링 ring 타입이면 돌출 크기 반영한 표시 크기 계산
+            display_w = target_width
+            display_h = target_height
+            if product_type == "keyring" and hole_type == "ring":
+                w_add, h_add = get_keyring_size_addition_mm(keyring_position)
+                display_w += w_add
+                display_h += h_add
+
             cutting_preview_filename = f"{filename}_cutting.png"
             cutting_preview_output = UPLOAD_DIR / cutting_preview_filename
             if create_cutting_preview(
-                str(actual_path), cutting_result, str(cutting_preview_output)
+                str(actual_path), cutting_result, str(cutting_preview_output),
+                size_mm=(display_w, display_h),
             ):
                 cutting_preview_path = f"/static/uploads/{cutting_preview_filename}"
 

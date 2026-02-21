@@ -30,20 +30,48 @@
             </div>
         </div>
 
-        <!-- 복잡도 게이지 -->
+        <!-- 복잡도 3기준 게이지 -->
         <div class="complexity-gauge">
             <div class="gauge-header">
                 <span class="gauge-label">복잡도</span>
-                <span class="gauge-grade grade-{{ quote.complexity_label }}">{{ quote.complexity_label }}</span>
+                <span class="gauge-grade grade-{{ quote.complexity_label|replace(' ', '-') }}">{{ quote.complexity_label }}</span>
+                {% if quote.complexity_multiplier and quote.complexity_multiplier > 1.0 %}
+                <span class="gauge-surcharge">x{{ quote.complexity_multiplier }} 할증</span>
+                {% endif %}
             </div>
-            <div class="gauge-bar">
-                <div class="gauge-fill" style="width: {{ (quote.complexity_score * 100)|int }}%"></div>
+
+            <!-- 2기준별 개별 게이지 -->
+            <div class="sub-scores">
+                <div class="sub-score-row">
+                    <span class="sub-label">아웃라인 길이</span>
+                    <div class="sub-bar">
+                        <div class="sub-fill sub-fill-outline" style="width: {{ (quote.outline_length_pct)|int }}%"></div>
+                    </div>
+                    <span class="sub-pct">{{ quote.outline_length_pct|int }}%</span>
+                </div>
+
+                <div class="sub-score-row">
+                    <span class="sub-label">방향 전환</span>
+                    <div class="sub-bar">
+                        <div class="sub-fill sub-fill-direction" style="width: {{ (quote.direction_change_pct)|int }}%"></div>
+                    </div>
+                    <span class="sub-pct">{{ quote.direction_change_pct|int }}%</span>
+                </div>
+            </div>
+
+            <!-- 전체 복잡도 바 -->
+            <div class="gauge-total">
+                <span class="gauge-total-label">전체 복잡도</span>
+                <div class="gauge-bar">
+                    <div class="gauge-fill" style="width: {{ (quote.complexity_score * 100)|int }}%"></div>
+                </div>
+                <span class="gauge-total-pct">{{ (quote.complexity_score * 100)|int }}%</span>
             </div>
             <div class="gauge-scale">
-                <span>낮음</span>
+                <span>단순</span>
                 <span>보통</span>
-                <span>높음</span>
-                <span>매우높음</span>
+                <span>복잡</span>
+                <span>매우 복잡</span>
             </div>
         </div>
     </div>
@@ -61,7 +89,7 @@
                 <td>{{ "{:,.1f}".format(quote.processing_cost) }}원</td>
             </tr>
             <tr class="multiplier-row">
-                <td>복잡도 할증 <small>({{ quote.complexity_label }})</small></td>
+                <td>복잡도 할증 <small>({{ quote.complexity_label }} {{ (quote.complexity_score * 100)|int }}점)</small></td>
                 <td>×{{ quote.complexity_multiplier }}</td>
             </tr>
             <tr class="multiplier-row">
@@ -184,7 +212,7 @@
     border-radius: 12px;
 }
 
-.gauge-grade.grade-낮음 {
+.gauge-grade.grade-단순 {
     background: #d4edda;
     color: #155724;
 }
@@ -194,14 +222,92 @@
     color: #856404;
 }
 
-.gauge-grade.grade-높음 {
+.gauge-grade.grade-복잡 {
     background: #f8d7da;
     color: #721c24;
 }
 
-.gauge-grade.grade-매우높음 {
+.gauge-grade.grade-매우-복잡 {
     background: #c0392b;
     color: #fff;
+}
+
+.gauge-surcharge {
+    font-size: 12px;
+    color: #e74c3c;
+    font-weight: 600;
+}
+
+/* 서브스코어 */
+.sub-scores {
+    margin: 10px 0;
+}
+
+.sub-score-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 2px;
+}
+
+.sub-label {
+    flex: 0 0 90px;
+    font-size: 12px;
+    color: #555;
+    font-weight: 500;
+}
+
+.sub-bar {
+    flex: 1;
+    height: 6px;
+    background: #e9ecef;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.sub-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s ease;
+}
+
+.sub-fill-outline { background: #3498db; }
+.sub-fill-direction { background: #e67e22; }
+
+.sub-pct {
+    flex: 0 0 36px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #555;
+    text-align: right;
+}
+
+/* 전체 복잡도 바 */
+.gauge-total {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    margin-bottom: 4px;
+}
+
+.gauge-total-label {
+    flex: 0 0 90px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+}
+
+.gauge-total .gauge-bar {
+    flex: 1;
+}
+
+.gauge-total-pct {
+    flex: 0 0 36px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #333;
+    text-align: right;
 }
 
 .gauge-bar {
