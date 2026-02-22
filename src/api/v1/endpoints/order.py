@@ -48,6 +48,9 @@ async def submit_order(
     notes: Optional[str] = Form(None),
     ratio_file_path: Optional[str] = Form(None),
     file: Optional[UploadFile] = File(None),
+    proof_requested: Optional[str] = Form(None),
+    template_file: Optional[str] = Form(None),
+    order_type: str = Form("order"),
     service: OrderServiceDep = None,
 ) -> HTMLResponse:
     """
@@ -97,6 +100,9 @@ async def submit_order(
             quantity=quantity,
             file_path=file_path,
             notes=notes,
+            proof_requested=bool(proof_requested),
+            template_file_requested=bool(template_file),
+            order_type=order_type,
         )
 
         order = service.create_order(order_data)

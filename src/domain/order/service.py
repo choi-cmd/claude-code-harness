@@ -63,12 +63,6 @@ class OrderService:
         Returns:
             생성된 주문
         """
-        # 단가 계산
-        calc_request = CalculateRequest(
-            width=order.width, height=order.height, quantity=order.quantity
-        )
-        calc_result = self.calculator.calculate(calc_request)
-
         # 주문 데이터 준비
         order_data = {
             "customer_name": order.customer_name,
@@ -77,13 +71,37 @@ class OrderService:
             "width": order.width,
             "height": order.height,
             "quantity": order.quantity,
-            "min_quantity": calc_result.min_quantity,
-            "unit_price": calc_result.unit_price,
-            "total_price": calc_result.total_price,
-            "is_sample": calc_result.is_sample,
             "file_path": order.file_path,
             "notes": order.notes,
+            "proof_requested": order.proof_requested,
+            "template_file_requested": order.template_file_requested,
+            "order_type": order.order_type,
         }
+
+        if order.order_type == "proof_only":
+            # 시안 전용: 시안비만 청구
+            total_price = 3000
+            order_data["unit_price"] = 0
+            order_data["min_quantity"] = 0
+            order_data["is_sample"] = False
+            order_data["total_price"] = total_price
+        else:
+            # 일반 주문: 단가 계산
+            calc_request = CalculateRequest(
+                width=order.width, height=order.height, quantity=order.quantity
+            )
+            calc_result = self.calculator.calculate(calc_request)
+
+            total_price = calc_result.total_price
+            if order.proof_requested:
+                total_price += 3000
+            if order.template_file_requested:
+                total_price += 10000
+
+            order_data["min_quantity"] = calc_result.min_quantity
+            order_data["unit_price"] = calc_result.unit_price
+            order_data["total_price"] = total_price
+            order_data["is_sample"] = calc_result.is_sample
 
         # 저장
         saved_order = self.repository.create(order_data)

@@ -293,6 +293,14 @@
                 </span>
             </label>
 
+            <label class="option-checkbox">
+                <input type="checkbox" id="opt_proof" name="proof_requested" value="1" onchange="updateOrderTotal()">
+                <span class="option-text">
+                    <strong>시안 확인하기</strong>
+                    <small>제작 전 시안을 확인하고 싶은 경우<br>(+3,000원, VAT별도)</small>
+                </span>
+            </label>
+
             <div class="order-price-summary">
                 <div class="order-price-row">
                     <span>제작비 (VAT별도)</span>
@@ -301,6 +309,10 @@
                 <div class="order-price-row" id="order-template-row" style="display:none;">
                     <span>작업틀 비용 (VAT별도)</span>
                     <span>10,000원</span>
+                </div>
+                <div class="order-price-row" id="order-proof-row" style="display:none;">
+                    <span>시안 확인 비용 (VAT별도)</span>
+                    <span>3,000원</span>
                 </div>
                 <div class="order-price-row order-price-subtotal">
                     <span>합계 (VAT별도)</span>
@@ -325,7 +337,11 @@
             </div>
 
             <div id="order-error" class="order-error" style="display:none;"></div>
+            <input type="hidden" id="order_type" name="order_type" value="order">
             <button type="submit" class="btn-order">주문 신청하기</button>
+            <button type="button" class="btn-proof-only" onclick="submitProofOnly()">
+                시안만 확인하기 <small>(3,000원, VAT포함 3,300원)</small>
+            </button>
         </form>
 
         <div id="order-result"></div>
@@ -739,16 +755,32 @@ function resetCalc() {
 function updateOrderTotal() {
     var base = window.calcPrice || 0;
     var templateChecked = document.getElementById('opt_template_file').checked;
+    var proofChecked = document.getElementById('opt_proof').checked;
     var templateRow = document.getElementById('order-template-row');
-    var totalBeforeVat = base + (templateChecked ? 10000 : 0);
+    var proofRow = document.getElementById('order-proof-row');
+    var templateFee = templateChecked ? 10000 : 0;
+    var proofFee = proofChecked ? 3000 : 0;
+    var totalBeforeVat = base + templateFee + proofFee;
     var totalWithVat = Math.floor(totalBeforeVat * 1.1);
 
     document.getElementById('order-base-price').textContent = base.toLocaleString() + '원';
     templateRow.style.display = templateChecked ? 'flex' : 'none';
+    proofRow.style.display = proofChecked ? 'flex' : 'none';
     document.getElementById('order-subtotal-price').textContent = totalBeforeVat.toLocaleString() + '원';
     document.getElementById('order-final-price').textContent = totalWithVat.toLocaleString() + '원';
     // 최종 금액 저장 (주문 완료 화면에서 사용)
     window.orderFinalPrice = totalWithVat;
+}
+
+// 시안만 확인 제출
+function submitProofOnly() {
+    // order_type을 proof_only로 변경 후 폼 제출
+    document.getElementById('order_type').value = 'proof_only';
+    htmx.trigger(document.querySelector('.order-form'), 'submit');
+    // 제출 후 원복
+    setTimeout(function() {
+        document.getElementById('order_type').value = 'order';
+    }, 100);
 }
 
 // 주문 신청 페이지로 전환
@@ -1015,6 +1047,37 @@ document.querySelector('.order-form').addEventListener('htmx:afterRequest', func
 .btn-order:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 16px rgba(244, 185, 0, 0.6);
+}
+
+/* 시안만 확인 버튼 */
+.btn-proof-only {
+    width: 100%;
+    padding: 14px;
+    background: #fff;
+    color: #666;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 8px;
+}
+
+.btn-proof-only:hover {
+    border-color: #F4B900;
+    color: #F4B900;
+    background: #fffbf0;
+}
+
+.btn-proof-only small {
+    font-weight: 400;
+    font-size: 13px;
+    color: #999;
+}
+
+.btn-proof-only:hover small {
+    color: #F4B900;
 }
 
 /* 주문 신청하기 버튼 (결과 하단) */

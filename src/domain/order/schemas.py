@@ -36,6 +36,9 @@ class OrderCreate(BaseModel):
     quantity: int = Field(..., gt=0, description="주문 수량")
     file_path: Optional[str] = Field(None, description="업로드 파일 경로")
     notes: Optional[str] = Field(None, description="요청사항")
+    proof_requested: bool = Field(default=False, description="시안 확인 요청")
+    template_file_requested: bool = Field(default=False, description="작업틀 파일 요청")
+    order_type: str = Field(default="order", description="주문 타입 (order/proof_only)")
 
 
 class OrderResponse(BaseModel):
@@ -56,5 +59,8 @@ class OrderResponse(BaseModel):
     notes: Optional[str] = Field(None, description="요청사항")
     created_at: str = Field(..., description="주문 일시")
     status: str = Field(default="pending", description="주문 상태")
+    proof_requested: bool = Field(default=False, description="시안 확인 요청")
+    template_file_requested: bool = Field(default=False, description="작업틀 파일 요청")
+    order_type: str = Field(default="order", description="주문 타입")
 
     model_config = {"from_attributes": True}

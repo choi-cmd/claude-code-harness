@@ -190,23 +190,71 @@ def _calculate_keyring_hole(
     """
     키링 고리 구멍 위치 계산
 
+    컨투어의 꼭대기(apex) 지점 X좌표 사용, 가로 중앙 1/3 범위로 제한.
+
     Returns:
         (hole_center, hole_radius)
     """
     x, y, bw, bh = cv2.boundingRect(cutting_contour)
     hole_r = int(hole_diameter_px / 2)
     dist = int(edge_distance_px)
+    pts = cutting_contour.reshape(-1, 2)
+
+    # 중앙 1/3 범위 계산
+    third = bw / 3
+    center_min_x = x + third
+    center_max_x = x + third * 2
+    center_min_y = y + bh / 3
+    center_max_y = y + bh / 3 * 2
 
     if position == "top":
-        cx, cy = x + bw // 2, y - dist - hole_r
+        # 중앙 1/3 X범위 내 가장 위쪽(min Y) 컨투어 포인트 찾기
+        in_range = (pts[:, 0] >= center_min_x) & (pts[:, 0] <= center_max_x)
+        if in_range.sum() > 0:
+            top_pts = pts[in_range]
+            apex_idx = top_pts[:, 1].argmin()
+            cx = int(top_pts[apex_idx, 0])
+            apex_y = int(top_pts[apex_idx, 1])
+        else:
+            cx = x + bw // 2
+            apex_y = y
+        # 구멍 하단이 컨투어 표면에 바로 닿음 (목 0mm)
+        cy = apex_y - hole_r
     elif position == "bottom":
-        cx, cy = x + bw // 2, y + bh + dist + hole_r
+        in_range = (pts[:, 0] >= center_min_x) & (pts[:, 0] <= center_max_x)
+        if in_range.sum() > 0:
+            bot_pts = pts[in_range]
+            apex_idx = bot_pts[:, 1].argmax()
+            cx = int(bot_pts[apex_idx, 0])
+            apex_y = int(bot_pts[apex_idx, 1])
+        else:
+            cx = x + bw // 2
+            apex_y = y + bh
+        cy = apex_y + hole_r
     elif position == "left":
-        cx, cy = x - dist - hole_r, y + bh // 2
+        in_range = (pts[:, 1] >= center_min_y) & (pts[:, 1] <= center_max_y)
+        if in_range.sum() > 0:
+            left_pts = pts[in_range]
+            apex_idx = left_pts[:, 0].argmin()
+            cy = int(left_pts[apex_idx, 1])
+            apex_x = int(left_pts[apex_idx, 0])
+        else:
+            cy = y + bh // 2
+            apex_x = x
+        cx = apex_x - hole_r
     elif position == "right":
-        cx, cy = x + bw + dist + hole_r, y + bh // 2
+        in_range = (pts[:, 1] >= center_min_y) & (pts[:, 1] <= center_max_y)
+        if in_range.sum() > 0:
+            right_pts = pts[in_range]
+            apex_idx = right_pts[:, 0].argmax()
+            cy = int(right_pts[apex_idx, 1])
+            apex_x = int(right_pts[apex_idx, 0])
+        else:
+            cy = y + bh // 2
+            apex_x = x + bw
+        cx = apex_x + hole_r
     else:
-        cx, cy = x + bw // 2, y - dist - hole_r
+        cx, cy = x + bw // 2, y - hole_r
 
     return (cx, cy), hole_r
 
@@ -516,6 +564,9 @@ def create_cutting_preview(
     cutting_cv = np.zeros((new_h, new_w), dtype=np.uint8)
     cutting_cv[oy : oy + sh, ox : ox + sw] = cutting_mask_s
 
+    # 본체 재단선 스무딩 (오브제/키링 공통 — 동일한 재단선)
+    cutting_cv = _smooth_mask(cutting_cv)
+
     if is_ring:
         hc = s_point(result.hole_center)
         hole_r_s = result.hole_radius_px * S
@@ -548,29 +599,25 @@ def create_cutting_preview(
         tab_mask = cv2.GaussianBlur(tab_mask, (blur_k, blur_k), 0)
         _, tab_mask = cv2.threshold(tab_mask, 127, 255, cv2.THRESH_BINARY)
 
-        # 합성
+        # 합성 (이미 스무딩된 본체 + 탭)
         combined = cv2.bitwise_or(cutting_cv, tab_mask)
 
-        # 모폴로지 클로징 → 접합부 안쪽 코너만 둥글게 (돔 바깥쪽은 보존)
+        # 모폴로지 클로징 → 접합부 안쪽 코너만 둥글게 (본체 재단선은 변경 없음)
         close_k = max(5, int(tab_r * 0.7)) | 1
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (close_k, close_k))
         combined = cv2.morphologyEx(combined, cv2.MORPH_CLOSE, kernel)
 
-        # 가벼운 블러 → 전체 윤곽 부드럽게
-        smooth_k = max(5, int(tab_r * 0.4)) | 1
-        combined = cv2.GaussianBlur(combined, (smooth_k, smooth_k), 0)
-        _, combined = cv2.threshold(combined, 127, 255, cv2.THRESH_BINARY)
-
         # 구멍 뚫기
         cv2.circle(combined, hc, hole_r_s, 0, -1)
 
-        # 외곽선 (이미 스무딩 완료 → smooth=False로 추가 블러 방지)
+        # 외곽선 (본체는 오브제와 동일 스무딩 적용 완료)
         _mask_outline(combined, line_color, thin, smooth=False)
         hole_m = np.zeros((new_h, new_w), dtype=np.uint8)
         cv2.circle(hole_m, hc, hole_r_s, 255, -1)
         _mask_outline(hole_m, line_color, thin, smooth=False)
     else:
-        _mask_outline(cutting_cv, line_color, thin)
+        # 오브제 / 내부타공: 이미 스무딩된 cutting_cv 사용
+        _mask_outline(cutting_cv, line_color, thin, smooth=False)
 
     # 내부 타공 표시
     if (

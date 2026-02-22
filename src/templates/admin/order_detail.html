@@ -83,6 +83,34 @@
                         {% endif %}
                     </td>
                 </tr>
+                <tr>
+                    <td>주문 유형</td>
+                    <td>
+                        {% if order.order_type == 'proof_only' %}
+                        <span class="badge-proof">시안 확인 전용</span>
+                        {% else %}주문 제작{% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td>시안 확인</td>
+                    <td>
+                        {% if order.proof_requested or order.order_type == 'proof_only' %}
+                        <span class="badge-warning">요청함 (+3,000원)</span>
+                        {% else %}
+                        <span class="badge-success">미요청</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td>작업틀 파일</td>
+                    <td>
+                        {% if order.template_file_requested %}
+                        <span class="badge-warning">요청함 (+10,000원)</span>
+                        {% else %}
+                        <span class="badge-success">미요청</span>
+                        {% endif %}
+                    </td>
+                </tr>
             </table>
         </div>
 
@@ -265,6 +293,16 @@
     padding: 4px 12px;
     background: #d4edda;
     color: #155724;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.badge-proof {
+    display: inline-block;
+    padding: 4px 12px;
+    background: #e8f0fe;
+    color: #1a73e8;
     border-radius: 12px;
     font-size: 13px;
     font-weight: 600;

@@ -29,6 +29,7 @@
         <button class="filter-tab active" onclick="filterOrders('all')">전체 <span class="tab-count" id="count-all">0</span></button>
         <button class="filter-tab" onclick="filterOrders('pending')">대기중 <span class="tab-count" id="count-pending">0</span></button>
         <button class="filter-tab" onclick="filterOrders('completed')">완료 <span class="tab-count" id="count-completed">0</span></button>
+        <button class="filter-tab" onclick="filterOrders('proof_only')">시안 <span class="tab-count" id="count-proof">0</span></button>
     </div>
 
     <!-- 선택 액션 바 -->
@@ -60,7 +61,7 @@
             </thead>
             <tbody id="orders-tbody">
                 {% for order in orders %}
-                <tr data-order-id="{{ order.order_id }}" data-status="{{ order.status }}" class="order-row">
+                <tr data-order-id="{{ order.order_id }}" data-status="{{ order.status }}" data-order-type="{{ order.get('order_type', 'order') }}" class="order-row">
                     <td><input type="checkbox" class="order-check" value="{{ order.order_id }}" onchange="updateBulkActions()"></td>
                     <td><strong>{{ order.order_id[-4:] }}</strong></td>
                     <td>{{ order.customer_name }}</td>
@@ -74,6 +75,11 @@
                         <span class="status-badge status-{{ order.status }}">
                             {% if order.status == 'pending' %}대기중{% elif order.status == 'completed' %}완료{% else %}{{ order.status }}{% endif %}
                         </span>
+                        {% if order.order_type == 'proof_only' %}
+                        <span class="badge-proof">시안</span>
+                        {% elif order.proof_requested %}
+                        <span class="badge-proof-sm">시안확인</span>
+                        {% endif %}
                     </td>
                     <td>{{ order.created_at[5:16] }}</td>
                     <td>
@@ -132,10 +138,12 @@ function filterOrders(status) {
     currentFilter = status;
     var rows = document.querySelectorAll('.order-row');
     rows.forEach(function(row) {
-        if (status === 'all' || row.dataset.status === status) {
+        if (status === 'all') {
             row.style.display = '';
+        } else if (status === 'proof_only') {
+            row.style.display = (row.dataset.orderType === 'proof_only') ? '' : 'none';
         } else {
-            row.style.display = 'none';
+            row.style.display = (row.dataset.status === status) ? '' : 'none';
         }
     });
 
@@ -196,15 +204,17 @@ function downloadSelected() {
 // 카운트 업데이트
 (function() {
     var rows = document.querySelectorAll('.order-row');
-    var total = 0, pending = 0, completed = 0;
+    var total = 0, pending = 0, completed = 0, proof = 0;
     rows.forEach(function(row) {
         total++;
         if (row.dataset.status === 'pending') pending++;
         else if (row.dataset.status === 'completed') completed++;
+        if (row.dataset.orderType === 'proof_only') proof++;
     });
     document.getElementById('count-all').textContent = total;
     document.getElementById('count-pending').textContent = pending;
     document.getElementById('count-completed').textContent = completed;
+    document.getElementById('count-proof').textContent = proof;
 })();
 </script>
 
@@ -438,6 +448,28 @@ function downloadSelected() {
 .status-completed {
     background: #d4edda;
     color: #155724;
+}
+
+.badge-proof {
+    display: inline-block;
+    padding: 3px 8px;
+    background: #e8f0fe;
+    color: #1a73e8;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-left: 4px;
+}
+
+.badge-proof-sm {
+    display: inline-block;
+    padding: 2px 6px;
+    background: #fef3e0;
+    color: #e65100;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 600;
+    margin-left: 4px;
 }
 
 .btn-view {

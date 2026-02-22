@@ -1,6 +1,6 @@
 {
-  "print_offset_mm": 0.5,
-  "cutting_offset_mm": 1.0,
+  "print_offset_mm": 0.25,
+  "cutting_offset_mm": 0.5,
   "smoothing_factor": 0.02,
   "keyring_hole": {
     "diameter_mm": 3.2,
