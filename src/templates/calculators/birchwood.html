@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}자작나무 주문제작 프로그램 - 서블리원{% endblock %}
+
+{% block content %}
+<div class="calculator-card">
+    <div class="header-section">
+        <a href="/" class="btn-back-home">&larr; 소재 선택</a>
+        <div class="title-group">
+            <h1>&#x1fab5; 자작나무 주문제작 프로그램</h1>
+        </div>
+    </div>
+    <hr class="header-divider">
+
+    <div class="coming-soon">
+        <div class="coming-soon-icon">&#x1f6a7;</div>
+        <h2>서비스 준비중입니다</h2>
+        <p>자작나무 소재 주문제작 서비스를 준비하고 있습니다.<br>빠른 시일 내에 오픈할 예정입니다.</p>
+        <a href="/" class="btn-back-link">소재 선택으로 돌아가기</a>
+    </div>
+</div>
+
+<style>
+.btn-back-home {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 16px;
+    background: #fff;
+    color: var(--gray-600);
+    border: 1.5px solid var(--gray-300);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all var(--transition-normal);
+    flex-shrink: 0;
+}
+
+.btn-back-home:hover {
+    color: var(--gold-400);
+    border-color: var(--gold-400);
+    background: var(--gold-50);
+}
+
+.header-section {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 0;
+}
+
+.title-group h1 {
+    font-size: 22px;
+    color: var(--gray-800);
+    margin: 0;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.header-divider {
+    border: none;
+    height: 3px;
+    background: var(--gold-gradient);
+    margin: 16px 0 8px 0;
+    border-radius: 2px;
+}
+
+.coming-soon {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.coming-soon-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+    width: 100px;
+    height: 100px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--gray-100);
+    border-radius: 50%;
+}
+
+.coming-soon h2 {
+    font-size: 22px;
+    color: var(--gray-800);
+    margin-bottom: 12px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.coming-soon p {
+    font-size: 15px;
+    color: var(--gray-500);
+    line-height: 1.7;
+    margin-bottom: 28px;
+}
+
+.btn-back-link {
+    display: inline-block;
+    padding: 14px 32px;
+    background: var(--gold-gradient);
+    color: var(--gray-900);
+    border-radius: var(--radius-md);
+    font-size: 15px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all var(--transition-normal);
+    box-shadow: 0 2px 8px rgba(244, 185, 0, 0.2);
+    letter-spacing: 0.02em;
+}
+
+.btn-back-link:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-gold), 0 8px 24px rgba(244, 185, 0, 0.3);
+}
+
+.btn-back-link:active {
+    transform: scale(0.98);
+}
+</style>
+{% endblock %}

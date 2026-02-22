@@ -1,0 +1,520 @@
+{% extends "base.html" %}
+{% block pwa %}
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Custom Order">
+    <link rel="apple-touch-icon" href="/static/images/icon-192.png">
+    <link rel="manifest" href="/static/manifest-admin.json">
+{% endblock %}
+{% block pwa_script %}{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>&#x2699;&#xfe0f; {{ settings.display_name }} 설정</h1>
+        <div class="admin-actions">
+            <a href="/admin/" class="btn-action btn-nav">대시보드</a>
+            <a href="/admin/orders" class="btn-action btn-secondary">주문 관리</a>
+            <a href="/admin/logout" class="btn-action btn-logout">로그아웃</a>
+        </div>
+    </div>
+
+    <div class="admin-nav">
+        <a href="/admin/" class="nav-tab">대시보드</a>
+        <a href="/admin/orders" class="nav-tab">주문 관리</a>
+    </div>
+
+    <div class="settings-breadcrumb">
+        <a href="/admin/">대시보드</a> &rsaquo; <span>{{ settings.display_name }} 설정</span>
+    </div>
+
+    <form method="POST" action="/admin/settings/{{ calc_type }}" class="settings-form" id="settings-form">
+        <!-- 기본 정보 -->
+        <div class="settings-section">
+            <h2>&#x1f4cb; 기본 정보</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="display_name">표시명</label>
+                    <input type="text" id="display_name" name="display_name" value="{{ settings.display_name }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="enabled">활성화</label>
+                    <select id="enabled" name="enabled" class="select-input">
+                        <option value="true" {% if settings.enabled %}selected{% endif %}>활성화</option>
+                        <option value="false" {% if not settings.enabled %}selected{% endif %}>비활성화</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="description">설명</label>
+                <input type="text" id="description" name="description" value="{{ settings.description }}">
+            </div>
+        </div>
+
+        <!-- 파일 업로드 설정 -->
+        <div class="settings-section">
+            <h2>&#x1f4ce; 파일 업로드 설정</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="allowed_types">허용 파일 형식</label>
+                    <input type="text" id="allowed_types" name="allowed_types"
+                           value="{{ settings.upload.allowed_types | join(', ') }}"
+                           placeholder=".jpg, .png, .gif">
+                    <small>쉼표로 구분 (예: .jpg, .png, .gif)</small>
+                </div>
+                <div class="form-group">
+                    <label for="max_size_mb">최대 파일 크기 (MB)</label>
+                    <input type="number" id="max_size_mb" name="max_size_mb"
+                           value="{{ settings.upload.max_size_mb }}" min="1" max="50">
+                </div>
+            </div>
+        </div>
+
+        <!-- 입력 필드 설정 -->
+        <div class="settings-section">
+            <h2>&#x1f4dd; 입력 필드 설정</h2>
+            {% for key, field in settings.fields.items() %}
+            <div class="field-row">
+                <span class="field-name">{{ field.label }}</span>
+                <label class="toggle-label">
+                    <input type="checkbox" name="field_{{ key }}_required"
+                           {% if field.required %}checked{% endif %}>
+                    <span>필수</span>
+                </label>
+                <label class="toggle-label">
+                    <input type="checkbox" name="field_{{ key }}_visible"
+                           {% if field.visible %}checked{% endif %}>
+                    <span>표시</span>
+                </label>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- 가격 설정 -->
+        <div class="settings-section">
+            <h2>&#x1f4b0; 가격 설정</h2>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="sample_fee">샘플 비용 (원)</label>
+                    <input type="number" id="sample_fee" name="sample_fee"
+                           value="{{ settings.pricing.sample_fee }}" min="0" step="1000">
+                </div>
+                <div class="form-group">
+                    <label for="discount_rate">할인율 (%)</label>
+                    <input type="number" id="discount_rate" name="discount_rate"
+                           value="{{ settings.pricing.discount_rate }}" min="0" max="100">
+                </div>
+                <div class="form-group">
+                    <label for="template_fee">작업틀 비용 (원)</label>
+                    <input type="number" id="template_fee" name="template_fee"
+                           value="{{ settings.pricing.template_fee }}" min="0" step="1000">
+                </div>
+            </div>
+        </div>
+
+        <!-- 옵션 관리 -->
+        {% if settings.options %}
+        <div class="settings-section">
+            <h2>&#x1f527; 옵션 관리</h2>
+            {% if settings.options.product_types %}
+            <div class="option-group">
+                <h3>제품 타입</h3>
+                {% for opt in settings.options.product_types %}
+                <div class="option-item">
+                    <strong>{{ opt.label }}</strong>
+                    <span>({{ opt.value }})</span>
+                    <small>{{ opt.description }}</small>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if settings.options.hole_types %}
+            <div class="option-group">
+                <h3>타공 타입</h3>
+                {% for opt in settings.options.hole_types %}
+                <div class="option-item">
+                    <strong>{{ opt.label }}</strong>
+                    <span>({{ opt.value }})</span>
+                    <small>{{ opt.description }}</small>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="settings-actions">
+            <button type="submit" class="btn-save">설정 저장</button>
+            <a href="/admin/" class="btn-cancel">취소</a>
+        </div>
+    </form>
+</div>
+
+{% if save_success %}
+<script>
+    alert('설정이 저장되었습니다.');
+</script>
+{% endif %}
+
+<style>
+.admin-container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #1E1E1E 0%, #2A2A2A 100%);
+    padding: 24px 28px;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-bottom: 3px solid var(--gold-400);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+
+.admin-header h1 {
+    color: #FFFFFF;
+    margin: 0;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.admin-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-action {
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 13px;
+    font-family: var(--font-main);
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all var(--transition-fast);
+}
+
+.btn-secondary { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.85); }
+.btn-secondary:hover { background: rgba(255,255,255,0.2); color: #fff; }
+.btn-logout { background: rgba(255,68,68,0.85); color: white; }
+.btn-logout:hover { background: #ff4444; }
+.btn-nav { background: var(--gold-gradient); color: var(--gray-900); box-shadow: 0 2px 6px rgba(244,185,0,0.3); }
+.btn-nav:hover { box-shadow: var(--shadow-gold); transform: translateY(-1px); }
+
+.admin-nav {
+    display: flex;
+    gap: 0;
+    background: #242424;
+    padding: 0 28px;
+    border-bottom: none;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.nav-tab {
+    padding: 13px 22px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    color: rgba(255,255,255,0.45);
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+    transition: all var(--transition-normal);
+}
+
+.nav-tab:hover { color: rgba(255,255,255,0.8); }
+.nav-tab.active { color: var(--gold-400); border-bottom-color: var(--gold-400); font-weight: 700; }
+
+.settings-breadcrumb {
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 20px;
+    padding: 0 4px;
+}
+
+.settings-breadcrumb a {
+    color: var(--gold-400);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.settings-breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.settings-breadcrumb span {
+    color: rgba(255,255,255,0.7);
+}
+
+.settings-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.settings-section {
+    background: linear-gradient(180deg, #FFFFFF 0%, #FDFCF8 100%);
+    border: 1px solid rgba(244, 185, 0, 0.15);
+    border-left: 4px solid var(--gold-400);
+    border-radius: var(--radius-lg);
+    padding: 26px;
+    transition: all var(--transition-normal);
+    box-shadow: var(--shadow-md);
+}
+
+.settings-section:hover {
+    border-color: rgba(244, 185, 0, 0.25);
+    border-left-color: var(--gold-500);
+    box-shadow: var(--shadow-lg);
+}
+
+.settings-section h2 {
+    font-size: 17px;
+    color: var(--gray-800);
+    margin: 0 0 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--gray-200);
+    font-weight: 800;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.form-group {
+    margin-bottom: 12px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: 6px;
+    letter-spacing: 0.01em;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"] {
+    width: 100%;
+    padding: 10px 14px;
+    border: 2px solid var(--gray-300);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-family: var(--font-main);
+    box-sizing: border-box;
+    transition: all var(--transition-normal);
+    background: var(--gray-50);
+}
+
+.form-group input:focus {
+    border-color: var(--gold-400);
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(244, 185, 0, 0.12);
+    background: #fff;
+}
+
+.form-group small {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--gray-400);
+}
+
+.select-input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 2px solid var(--gray-300);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-family: var(--font-main);
+    background: var(--gray-50);
+    cursor: pointer;
+    transition: all var(--transition-normal);
+}
+
+.select-input:focus {
+    border-color: var(--gold-400);
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(244, 185, 0, 0.12);
+    background: #fff;
+}
+
+.field-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 11px 16px;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+    transition: all var(--transition-fast);
+}
+
+.field-row:hover {
+    background: var(--gold-50);
+    border-color: var(--gold-200);
+}
+
+.field-name {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-800);
+}
+
+.toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--gray-600);
+    cursor: pointer;
+}
+
+.toggle-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--gold-400);
+    cursor: pointer;
+}
+
+.option-group {
+    margin-bottom: 16px;
+}
+
+.option-group h3 {
+    font-size: 14px;
+    color: var(--gray-700);
+    margin: 0 0 10px;
+    font-weight: 700;
+}
+
+.option-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 16px;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-sm);
+    margin-bottom: 6px;
+    font-size: 13px;
+    transition: all var(--transition-fast);
+}
+
+.option-item:hover {
+    background: var(--gold-50);
+    border-color: var(--gold-200);
+}
+
+.option-item strong {
+    color: var(--gray-800);
+}
+
+.option-item span {
+    color: var(--gray-400);
+    font-size: 12px;
+}
+
+.option-item small {
+    margin-left: auto;
+    color: var(--gray-500);
+}
+
+.settings-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding-top: 8px;
+}
+
+.btn-save {
+    padding: 13px 36px;
+    background: var(--gold-gradient);
+    color: var(--gray-900);
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 15px;
+    font-weight: 700;
+    font-family: var(--font-main);
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    box-shadow: 0 2px 8px rgba(244,185,0,0.2);
+    letter-spacing: 0.02em;
+}
+
+.btn-save:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-gold), 0 8px 20px rgba(244,185,0,0.25);
+}
+
+.btn-save:active {
+    transform: scale(0.98);
+}
+
+.btn-cancel {
+    padding: 13px 28px;
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.6);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: var(--radius-md);
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all var(--transition-normal);
+}
+
+.btn-cancel:hover {
+    background: rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.9);
+}
+
+@media (max-width: 768px) {
+    .admin-container {
+        padding: 10px;
+    }
+    .admin-header {
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px;
+        text-align: center;
+    }
+    .admin-header h1 {
+        font-size: 17px;
+    }
+    .admin-actions {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .settings-section {
+        padding: 16px;
+    }
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    .field-row {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .settings-actions {
+        flex-direction: column;
+    }
+    .btn-save, .btn-cancel {
+        text-align: center;
+    }
+}
+</style>
+{% endblock %}

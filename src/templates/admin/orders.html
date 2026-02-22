@@ -11,7 +11,7 @@
 {% block content %}
 <div class="admin-container">
     <div class="admin-header">
-        <h1>&#x1f4e6; Custom Order</h1>
+        <h1>&#x1f4e6; 주문 관리</h1>
         <div class="admin-actions">
             <a href="/admin/" class="btn-action btn-nav">대시보드</a>
             <a href="/" class="btn-action btn-secondary">고객 페이지로</a>
@@ -34,10 +34,10 @@
     <!-- 선택 액션 바 -->
     <div class="bulk-actions" id="bulk-actions" style="display:none;">
         <span id="selected-count">0개 선택</span>
-        <button onclick="bulkUpdateStatus('completed')" class="btn-action btn-complete">✅ 완료 처리</button>
-        <button onclick="bulkUpdateStatus('pending')" class="btn-action btn-revert">↩️ 대기 처리</button>
-        <button onclick="downloadSelected()" class="btn-action btn-download-csv">📥 선택 다운로드</button>
-        <a href="/admin/orders/download" class="btn-action btn-download-all">📥 전체 다운로드</a>
+        <button onclick="bulkUpdateStatus('completed')" class="btn-action btn-complete">&#x2705; 완료 처리</button>
+        <button onclick="bulkUpdateStatus('pending')" class="btn-action btn-revert">&#x21a9;&#xfe0f; 대기 처리</button>
+        <button onclick="downloadSelected()" class="btn-action btn-download-csv">&#x1f4e5; 선택 다운로드</button>
+        <a href="/admin/orders/download" class="btn-action btn-download-all">&#x1f4e5; 전체 다운로드</a>
     </div>
 
     <div class="orders-list">
@@ -52,7 +52,7 @@
                     <th class="col-size">크기</th>
                     <th class="col-qty">수량</th>
                     <th class="col-price">금액</th>
-                    <th class="col-file">📎</th>
+                    <th class="col-file">&#x1f4ce;</th>
                     <th class="col-status">상태</th>
                     <th class="col-date">일시</th>
                     <th class="col-action"></th>
@@ -65,10 +65,10 @@
                     <td><strong>{{ order.order_id[-4:] }}</strong></td>
                     <td>{{ order.customer_name }}</td>
                     <td>{{ order.customer_phone }}</td>
-                    <td>{{ order.width }}×{{ order.height }}mm</td>
+                    <td>{{ order.width }}&times;{{ order.height }}mm</td>
                     <td>{{ order.quantity }}개</td>
                     <td><strong>{{ "{:,}".format(order.total_price) }}원</strong></td>
-                    <td>{% if order.file_path %}<span class="file-link" onclick="showPreview('{{ order.file_path }}', '{{ order.order_id }}')">📎</span>{% else %}-{% endif %}</td>
+                    <td>{% if order.file_path %}<span class="file-link" onclick="showPreview('{{ order.file_path }}', '{{ order.order_id }}')">&#x1f4ce;</span>{% else %}-{% endif %}</td>
 
                     <td>
                         <span class="status-badge status-{{ order.status }}">
@@ -100,7 +100,7 @@
         </div>
         <div class="preview-body" id="preview-body"></div>
         <div class="preview-footer">
-            <a id="preview-download" href="#" download class="btn-action btn-download-csv">💾 다운로드</a>
+            <a id="preview-download" href="#" download class="btn-action btn-download-csv">&#x1f4be; 다운로드</a>
         </div>
     </div>
 </div>
@@ -220,64 +220,74 @@ function downloadSelected() {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 0;
-    background: white;
-    padding: 24px;
-    border-radius: 12px 12px 0 0;
+    background: linear-gradient(135deg, #1E1E1E 0%, #2A2A2A 100%);
+    padding: 24px 28px;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-bottom: 3px solid var(--gold-400);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
 }
 
 .admin-header h1 {
-    color: #5C5C5C;
+    color: #FFFFFF;
     margin: 0;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
 }
 
 .admin-actions {
     display: flex;
-    gap: 12px;
+    gap: 10px;
 }
 
 .btn-action {
-    padding: 8px 14px;
-    border-radius: 6px;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
     text-decoration: none;
     font-weight: 600;
     font-size: 13px;
+    font-family: var(--font-main);
     border: none;
     cursor: pointer;
     white-space: nowrap;
+    transition: all var(--transition-fast);
 }
 
-.btn-secondary { background: #f0f0f0; color: #333; }
-.btn-nav { background: #F4B900; color: #1A1A1A; }
-.btn-logout { background: #ff4444; color: white; }
-
-/* 네비게이션 */
-.admin-nav {
-    display: flex;
-    gap: 0;
-    background: white;
-    padding: 0 24px;
-    border-bottom: 2px solid #e0e0e0;
-    border-radius: 0 0 12px 12px;
-    margin-bottom: 16px;
-}
-
-.nav-tab {
-    padding: 12px 20px;
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 14px;
-    color: #888;
-    border-bottom: 3px solid transparent;
-    margin-bottom: -2px;
-    transition: all 0.2s;
-}
-
-.nav-tab:hover { color: #333; }
-.nav-tab.active { color: #F4B900; border-bottom-color: #F4B900; }
+.btn-secondary { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.85); }
+.btn-secondary:hover { background: rgba(255,255,255,0.2); color: #fff; }
+.btn-logout { background: rgba(255,68,68,0.85); color: white; }
+.btn-logout:hover { background: #ff4444; }
+.btn-nav { background: var(--gold-gradient); color: var(--gray-900); box-shadow: 0 2px 6px rgba(244,185,0,0.3); }
+.btn-nav:hover { box-shadow: var(--shadow-gold); transform: translateY(-1px); }
 .btn-download-csv { background: #28a745; color: white; }
 .btn-download-all { background: #17a2b8; color: white; }
 .btn-complete { background: #28a745; color: white; }
-.btn-revert { background: #6c757d; color: white; }
+.btn-revert { background: var(--gray-600); color: white; }
+
+.admin-nav {
+    display: flex;
+    gap: 0;
+    background: #242424;
+    padding: 0 28px;
+    border-bottom: none;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.nav-tab {
+    padding: 13px 22px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    color: rgba(255,255,255,0.45);
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+    transition: all var(--transition-normal);
+}
+
+.nav-tab:hover { color: rgba(255,255,255,0.8); }
+.nav-tab.active { color: var(--gold-400); border-bottom-color: var(--gold-400); font-weight: 700; }
 
 /* 필터 탭 */
 .filter-tabs {
@@ -288,26 +298,32 @@ function downloadSelected() {
 
 .filter-tab {
     padding: 10px 20px;
-    background: white;
-    border: 2px solid #e0e0e0;
-    border-radius: 8px;
+    background: rgba(255,255,255,0.06);
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: var(--radius-sm);
     font-size: 14px;
     font-weight: 600;
-    color: #666;
+    font-family: var(--font-main);
+    color: rgba(255,255,255,0.55);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all var(--transition-normal);
+}
+
+.filter-tab:hover {
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.8);
 }
 
 .filter-tab.active {
-    border-color: #F4B900;
-    background: #fffbf0;
-    color: #333;
+    border-color: var(--gold-400);
+    background: rgba(244, 185, 0, 0.1);
+    color: var(--gold-400);
 }
 
 .tab-count {
     display: inline-block;
-    background: #e0e0e0;
-    color: #666;
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.5);
     padding: 2px 8px;
     border-radius: 10px;
     font-size: 12px;
@@ -315,8 +331,8 @@ function downloadSelected() {
 }
 
 .filter-tab.active .tab-count {
-    background: #F4B900;
-    color: #1A1A1A;
+    background: var(--gold-400);
+    color: var(--gray-900);
 }
 
 /* 선택 액션 바 */
@@ -326,24 +342,29 @@ function downloadSelected() {
     flex-wrap: wrap;
     gap: 8px;
     padding: 12px 16px;
-    background: #333;
+    background: linear-gradient(135deg, #1E1E1E 0%, #2A2A2A 100%);
     color: white;
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     margin-bottom: 16px;
     font-size: 13px;
     font-weight: 600;
+    border: 1px solid rgba(244, 185, 0, 0.2);
+    box-shadow: var(--shadow-md);
 }
 
 #selected-count {
     margin-right: auto;
+    color: var(--gold-400);
 }
 
 /* 테이블 */
 .orders-list {
-    background: white;
-    border-radius: 12px;
+    background: linear-gradient(180deg, #FFFFFF 0%, #FDFCF8 100%);
+    border-radius: var(--radius-lg);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid rgba(244, 185, 0, 0.1);
 }
 
 .admin-table {
@@ -352,28 +373,41 @@ function downloadSelected() {
 }
 
 .admin-table thead {
-    background: #f8f9fa;
-}
-
-.admin-table th,
-.admin-table td {
-    padding: 12px 12px;
-    text-align: left;
-    font-size: 14px;
-    white-space: nowrap;
+    background: linear-gradient(135deg, #1E1E1E 0%, #2A2A2A 100%);
 }
 
 .admin-table th {
-    font-weight: 600;
-    color: #5C5C5C;
-    border-bottom: 2px solid #e0e0e0;
+    padding: 14px 12px;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.75);
+    border-bottom: 2px solid var(--gold-400);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
 }
 
 .admin-table td {
-    border-bottom: 1px solid #f0f0f0;
+    padding: 13px 12px;
+    text-align: left;
+    font-size: 14px;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--gray-100);
+    color: var(--gray-800);
 }
 
-/* 컬럼 정렬 */
+.admin-table tbody tr {
+    transition: background var(--transition-fast);
+}
+
+.admin-table tbody tr:nth-child(even) {
+    background: var(--gray-50);
+}
+
+.admin-table tbody tr:hover {
+    background: var(--gold-50);
+}
+
 .admin-table .col-check { text-align: center; }
 .admin-table .col-file { text-align: center; }
 
@@ -381,19 +415,19 @@ function downloadSelected() {
     width: 18px;
     height: 18px;
     cursor: pointer;
-    accent-color: #F4B900;
+    accent-color: var(--gold-400);
 }
 
 .order-row[data-status="completed"] {
-    opacity: 0.6;
-    background: #f9f9f9;
+    opacity: 0.55;
+    background: var(--gray-50);
 }
 
 .status-badge {
     padding: 4px 12px;
     border-radius: 12px;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
 }
 
 .status-pending {
@@ -408,18 +442,26 @@ function downloadSelected() {
 
 .btn-view {
     padding: 6px 14px;
-    background: #F4B900;
-    color: #1A1A1A;
+    background: var(--gold-gradient);
+    color: var(--gray-900);
     text-decoration: none;
-    border-radius: 6px;
-    font-weight: 600;
+    border-radius: var(--radius-sm);
+    font-weight: 700;
     font-size: 13px;
+    transition: all var(--transition-normal);
+    box-shadow: 0 1px 4px rgba(244,185,0,0.15);
+}
+
+.btn-view:hover {
+    box-shadow: var(--shadow-gold);
+    transform: translateY(-1px);
 }
 
 .empty-state {
     padding: 60px;
     text-align: center;
-    color: #999;
+    color: var(--gray-400);
+    font-size: 15px;
 }
 
 .file-link {
@@ -435,21 +477,24 @@ function downloadSelected() {
     display: none;
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.6);
+    background: rgba(0,0,0,0.7);
     z-index: 1000;
     justify-content: center;
     align-items: center;
+    backdrop-filter: blur(4px);
 }
 
 .preview-content {
-    background: white;
-    border-radius: 12px;
+    background: linear-gradient(180deg, #FFFFFF 0%, #FDFCF8 100%);
+    border-radius: var(--radius-lg);
     max-width: 700px;
     width: 90%;
     max-height: 85vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    box-shadow: var(--shadow-xl);
+    border: 1px solid rgba(244, 185, 0, 0.15);
 }
 
 .preview-header {
@@ -457,9 +502,10 @@ function downloadSelected() {
     justify-content: space-between;
     align-items: center;
     padding: 16px 20px;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid var(--gray-200);
     font-weight: 700;
     font-size: 16px;
+    color: var(--gray-800);
 }
 
 .preview-close {
@@ -467,10 +513,11 @@ function downloadSelected() {
     border: none;
     font-size: 28px;
     cursor: pointer;
-    color: #999;
+    color: var(--gray-400);
     line-height: 1;
+    transition: color var(--transition-fast);
 }
-.preview-close:hover { color: #333; }
+.preview-close:hover { color: var(--gray-800); }
 
 .preview-body {
     padding: 20px;
@@ -482,32 +529,31 @@ function downloadSelected() {
 .preview-img {
     max-width: 100%;
     max-height: 60vh;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
 }
 
 .preview-file-info {
     padding: 40px;
-    color: #666;
+    color: var(--gray-500);
 }
 
 .preview-ext {
     display: inline-block;
-    background: #f0f0f0;
+    background: var(--gray-100);
     padding: 12px 24px;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     font-size: 24px;
     font-weight: 700;
-    color: #333;
+    color: var(--gray-800);
     margin-bottom: 12px;
 }
 
 .preview-footer {
     padding: 16px 20px;
-    border-top: 1px solid #e0e0e0;
+    border-top: 1px solid var(--gray-200);
     text-align: right;
 }
 
-/* 모바일 반응형 */
 @media (max-width: 600px) {
     .admin-container {
         padding: 10px;
@@ -552,16 +598,16 @@ function downloadSelected() {
         font-size: 12px;
     }
     .orders-list {
-        border-radius: 8px;
+        border-radius: var(--radius-sm);
     }
     .orders-list::after {
-        content: '← 좌우로 스크롤 →';
+        content: '\2190 좌우로 스크롤 \2192';
         display: block;
         text-align: center;
         padding: 8px;
         font-size: 11px;
-        color: #999;
-        background: #f8f9fa;
+        color: var(--gray-400);
+        background: var(--gray-50);
     }
 }
 </style>

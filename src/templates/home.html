@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+
+{% block title %}서블리원 주문제작{% endblock %}
+
+{% block content %}
+<div class="home-card">
+    <div class="header-section">
+        <img src="/static/images/logo.png" alt="서블리원 로고" class="logo">
+        <div class="title-group">
+            <h1>서블리원 주문제작 프로그램</h1>
+            <p class="subtitle">소재를 선택하여 견적을 시작하세요</p>
+        </div>
+    </div>
+    <hr class="header-divider">
+
+    <div class="material-grid">
+        <!-- 아크릴 -->
+        <a href="/acrylic" class="material-card material-active">
+            <div class="material-icon">
+                <svg viewBox="0 0 40 40" width="36" height="36" fill="none">
+                    <path d="M20 3L37 20L20 37L3 20Z" stroke="#F4B900" stroke-width="2.5" stroke-linejoin="round"/>
+                    <path d="M20 10L30 20L20 30L10 20Z" fill="#F4B900" opacity="0.18"/>
+                    <line x1="20" y1="3" x2="20" y2="37" stroke="#F4B900" stroke-width="0.8" opacity="0.3"/>
+                    <line x1="3" y1="20" x2="37" y2="20" stroke="#F4B900" stroke-width="0.8" opacity="0.3"/>
+                </svg>
+            </div>
+            <div class="material-info">
+                <h2>아크릴 주문제작</h2>
+                <p>이미지 윤곽선대로 아크릴을 CNC/레이저로 재단합니다</p>
+            </div>
+            <span class="material-btn">견적 시작 &#x2192;</span>
+        </a>
+
+        <!-- 알루미늄 -->
+        <a href="/aluminum" class="material-card material-upcoming">
+            <div class="material-badge">준비중</div>
+            <div class="material-icon">
+                <svg viewBox="0 0 40 40" width="36" height="36" fill="none">
+                    <polygon points="20,3 35.5,12 35.5,28 20,37 4.5,28 4.5,12" stroke="#9E9E9E" stroke-width="2.5" stroke-linejoin="round"/>
+                    <polygon points="20,10 29,15.5 29,24.5 20,30 11,24.5 11,15.5" stroke="#9E9E9E" stroke-width="1.2" opacity="0.4"/>
+                    <circle cx="20" cy="20" r="4" fill="#9E9E9E" opacity="0.3"/>
+                </svg>
+            </div>
+            <div class="material-info">
+                <h2>알루미늄 주문제작 프로그램</h2>
+                <p>알루미늄 소재 주문제작 서비스 (준비중)</p>
+            </div>
+            <span class="material-btn material-btn-disabled">준비중</span>
+        </a>
+
+        <!-- 자작나무 -->
+        <a href="/birchwood" class="material-card material-upcoming">
+            <div class="material-badge">준비중</div>
+            <div class="material-icon">
+                <svg viewBox="0 0 40 40" width="36" height="36" fill="none">
+                    <circle cx="20" cy="20" r="17" stroke="#8D6E63" stroke-width="2.5"/>
+                    <circle cx="20" cy="20" r="11" stroke="#8D6E63" stroke-width="1.5" opacity="0.5"/>
+                    <circle cx="20" cy="20" r="5.5" stroke="#8D6E63" stroke-width="1.2" opacity="0.35"/>
+                    <circle cx="20" cy="20" r="2" fill="#8D6E63" opacity="0.4"/>
+                </svg>
+            </div>
+            <div class="material-info">
+                <h2>자작나무 주문제작 프로그램</h2>
+                <p>자작나무 소재 주문제작 서비스 (준비중)</p>
+            </div>
+            <span class="material-btn material-btn-disabled">준비중</span>
+        </a>
+    </div>
+</div>
+
+<style>
+.home-card {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.header-section {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 20px 0;
+}
+
+.header-section .logo {
+    width: 72px;
+    height: 72px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 8px rgba(244, 185, 0, 0.2));
+}
+
+.title-group h1 {
+    font-size: 24px;
+    color: #ffffff;
+    margin: 0;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.subtitle {
+    font-size: 14px;
+    color: var(--gray-400);
+    margin: 6px 0 0;
+    letter-spacing: 0.02em;
+}
+
+.header-divider {
+    border: none;
+    height: 3px;
+    background: var(--gold-gradient);
+    margin: 16px 0 28px 0;
+    border-radius: 2px;
+}
+
+.material-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+}
+
+.material-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 36px 24px 28px;
+    background: linear-gradient(180deg, #ffffff 0%, var(--gold-50) 100%);
+    border: 2px solid var(--gray-300);
+    border-radius: var(--radius-xl);
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s var(--ease-out);
+    text-align: center;
+}
+
+.material-card:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-lg);
+}
+
+.material-active {
+    border-color: var(--gold-400);
+    box-shadow: var(--shadow-md);
+}
+
+.material-active:hover {
+    border-color: var(--gold-500);
+    box-shadow: 0 12px 32px rgba(244,185,0,0.2), 0 4px 12px rgba(0,0,0,0.06);
+}
+
+.material-upcoming {
+    opacity: 0.65;
+    background: linear-gradient(180deg, #ffffff 0%, var(--gray-100) 100%);
+}
+
+.material-upcoming:hover {
+    opacity: 0.85;
+}
+
+.material-badge {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    padding: 4px 14px;
+    background: var(--gray-200);
+    color: var(--gray-500);
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+
+.material-icon {
+    font-size: 52px;
+    line-height: 1;
+    margin-bottom: 4px;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--gold-100);
+    border-radius: 50%;
+}
+
+.material-upcoming .material-icon {
+    background: var(--gray-100);
+}
+
+.material-info h2 {
+    font-size: 17px;
+    color: var(--gray-800);
+    margin: 0 0 6px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.material-info p {
+    font-size: 13px;
+    color: var(--gray-500);
+    margin: 0;
+    line-height: 1.6;
+}
+
+.material-btn {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 11px 28px;
+    background: var(--gold-gradient);
+    color: var(--gray-900);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 700;
+    transition: all var(--transition-normal);
+    box-shadow: 0 2px 8px rgba(244,185,0,0.15);
+    letter-spacing: 0.02em;
+}
+
+.material-active:hover .material-btn {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(244,185,0,0.35);
+}
+
+.material-btn-disabled {
+    background: var(--gray-300);
+    color: var(--gray-500);
+    box-shadow: none;
+}
+
+@media (max-width: 768px) {
+    .material-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    .header-section {
+        flex-direction: column;
+        text-align: center;
+    }
+    .header-section .logo {
+        width: 60px;
+        height: 60px;
+    }
+    .title-group h1 {
+        font-size: 20px;
+    }
+    .material-card {
+        padding: 28px 20px 24px;
+    }
+    .material-icon {
+        font-size: 44px;
+        width: 70px;
+        height: 70px;
+    }
+}
+</style>
+{% endblock %}
