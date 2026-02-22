@@ -1,0 +1,137 @@
+{
+  "acrylic": {
+    "display_name": "아크릴 주문제작",
+    "enabled": true,
+    "description": "서블리원 아크릴 주문제작 시스템 입니다.",
+    "upload": {
+      "allowed_types": [
+        ".jpg",
+        ".png",
+        ".bmp"
+      ],
+      "max_size_mb": 10
+    },
+    "fields": {
+      "width": {
+        "required": true,
+        "visible": true,
+        "label": "가로 (mm)"
+      },
+      "height": {
+        "required": true,
+        "visible": true,
+        "label": "세로 (mm)"
+      },
+      "quantity": {
+        "required": true,
+        "visible": true,
+        "label": "주문 수량 (개)"
+      }
+    },
+    "pricing": {
+      "sample_fee": 10000,
+      "discount_rate": 0,
+      "template_fee": 10000
+    },
+    "options": {
+      "product_types": [
+        {
+          "value": "objet",
+          "label": "오브제",
+          "description": "아크릴 재단만"
+        },
+        {
+          "value": "keyring",
+          "label": "키링",
+          "description": "고리 구멍 포함"
+        }
+      ],
+      "hole_types": [
+        {
+          "value": "ring",
+          "label": "고리형 (외부)",
+          "description": "고리가 재단선 밖으로 돌출"
+        },
+        {
+          "value": "internal",
+          "label": "내부 타공",
+          "description": "재단선 내부에 3.2mm 구멍"
+        }
+      ]
+    }
+  },
+  "aluminum": {
+    "display_name": "알루미늄 견적",
+    "enabled": false,
+    "description": "알루미늄 소재 주문제작 서비스",
+    "upload": {
+      "allowed_types": [
+        ".jpg",
+        ".png",
+        ".gif",
+        ".bmp"
+      ],
+      "max_size_mb": 10
+    },
+    "fields": {
+      "width": {
+        "required": true,
+        "visible": true,
+        "label": "가로 (mm)"
+      },
+      "height": {
+        "required": true,
+        "visible": true,
+        "label": "세로 (mm)"
+      },
+      "quantity": {
+        "required": true,
+        "visible": true,
+        "label": "주문 수량 (개)"
+      }
+    },
+    "pricing": {
+      "sample_fee": 10000,
+      "discount_rate": 0,
+      "template_fee": 10000
+    },
+    "options": {}
+  },
+  "birchwood": {
+    "display_name": "자작나무 견적",
+    "enabled": false,
+    "description": "자작나무 소재 주문제작 서비스",
+    "upload": {
+      "allowed_types": [
+        ".jpg",
+        ".png",
+        ".gif",
+        ".bmp"
+      ],
+      "max_size_mb": 10
+    },
+    "fields": {
+      "width": {
+        "required": true,
+        "visible": true,
+        "label": "가로 (mm)"
+      },
+      "height": {
+        "required": true,
+        "visible": true,
+        "label": "세로 (mm)"
+      },
+      "quantity": {
+        "required": true,
+        "visible": true,
+        "label": "주문 수량 (개)"
+      }
+    },
+    "pricing": {
+      "sample_fee": 10000,
+      "discount_rate": 0,
+      "template_fee": 10000
+    },
+    "options": {}
+  }
+}
